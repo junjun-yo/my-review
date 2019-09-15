@@ -1,0 +1,4 @@
+ 1.Babel 转码器 可以将ES6代码转化为ES5代码
+ 2.@babel-node 提供一个支持ES6的REPL(Read-eval-print-loop)环境，可以直接运行ES6代码
+ 3.@babel/register 改写require命令，为它加上一个钩子。此后每当使用require加载.js、.jsx、.es和.es6后缀名的文件，就会先用 Babel 进行转码。
+ 4.

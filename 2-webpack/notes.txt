@@ -1,0 +1,21 @@
+webpack是一个模块打包器
+由四个核心部分构成：
+1.entry入口
+2.output出口
+3.loader加载器
+4.plugin插件
+
+基本安装：
+npm init
+npm install --save-dev webpack
+···
+···
+···
+打包：
+在package.json中 scripts里添加 "build":"webpack -p"  
+在命令行中 输入npm run build 打包完成生成dist文件夹
+
+使用vue的打包上线流程：
+1.安装vui-cli
+2.npm run build 打包
+3.优化-使用CDN
