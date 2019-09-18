@@ -1,0 +1,3 @@
+<view>Here is 父组件:</view>
+<my-test prop-count="{{count}}" bind:myEvent="getChildData"/>
+<button bindtap="parChange" size="mini" type="primary">父组件按钮 点击修改count值：{{count}}</button>

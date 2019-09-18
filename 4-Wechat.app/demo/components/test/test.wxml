@@ -1,0 +1,5 @@
+<view>----Here is 子组件</view>
+<view>自定义组件的name：{{name}}</view>
+<button bindtap="btnChange" size="mini" type="warn">点击修改name值</button>
+<view>来自父组件的count传值为：{{propCount}}</view>
+<button bindtap="sonChange" size="mini" type="warn">子组件按钮 点击修改count值：{{propCount}}</button>
