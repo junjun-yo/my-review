@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <script>
+        //构造函数  第一步 原始
+        // function Student(name, age, sex) {
+        //     this.name = name;
+        //     this.age = age;
+        //     this.sex = sex;
+        //     //多个对象，会存储多个sayHi方法
+        //     this.sayHi = function () {
+        //         console.log('大家好，我是' + this.name);
+        //     }
+        // }
+        // var s1 = new Student('lilei', 18, '男');
+        // var s2 = new Student('hanmeimei', 18, '女');
+        // s1.sayHi();
+        // s2.sayHi();
+        // //比较的是二者的地址
+        // console.log(s1.sayHi === s2.sayHi);  //false
+
+
+        // //构造函数  第二步 进阶
+        // function Student(name, age, sex) {
+        //     this.name = name;
+        //     this.age = age;
+        //     this.sex = sex;
+
+        //     this.sayHi = sayHi;            
+        // }
+        // //将函数的方法提升为全局变量，
+        // function sayHi(){
+        //     console.log('大家好，我是' + this.name);
+        // }
+        // var s1 = new Student('lilei', 18, '男');
+        // var s2 = new Student('hanmeimei', 18, '女');
+        // s1.sayHi();
+        // s2.sayHi();
+        // //比较的是二者的地址 是同一个函数下的sayHi
+        // console.log(s1.sayHi === s2.sayHi);  //true
+
+
+        //构造函数  第三步 原型prototype 每一个构造函数都有的一个属性 
+        // function Student(name, age, sex) {
+        //     this.name = name;
+        //     this.age = age;
+        //     this.sex = sex;
+        // }
+        // console.dir(Student.prototype);   //object
+        //构造函数的对象添加方法
+        // Student.prototype.sayHi = function () {
+        //     console.log('大家好，我是' + this.name);
+        // }
+        //通过Student构造函数，创建的对象，可以访问Student,prototype中的成员
+        // var s1 = new Student('lilei', 18, '男');
+        // var s2 = new Student('hanmeimei', 18, '女');
+        // s1.sayHi();
+        // s2.sayHi();
+        // console.dir(s1);
+        //当调用对象的属性或者方法的时候，先去找对象本身的属性或方法；；如果对象本身没有该属性或者方法，此时去调用原型中的属性或方法；；如果对象本省没有该属性或方法，原型中也没有该属性或者方法，此时会报错
+        //s1.__proto__中的__proto__等于构造函数Student.prototype，是对他的引用！！__proto__属性是非标准的属性
+        // console.log(s1.__proto__ === Student.prototype);   //true
+        //在原型对象中有一个属性constructor构造函数，作用记录了创造该对象的构造函数
+        //s1的构造函数就是Student
+        // console.log(s1.constructor === Student);  //true
+        //可以重新改变原型对象的prototype属性，设置一个新的对象
+        // Student.prototype = {
+        //     //当我们改变原型对象的prototype时，需要重新设置constructor属性！！
+        //     constructor: Student,
+        //     sayHi: function () {
+        //         console.log('sayHi');
+        //     },
+        //     eat: function () {
+        //         console.log('eat');
+        //     }
+        // }
+
+
+
+        //数组或者string中的prototype时不可以修改的！！！！
+        // var array = [1, 2, 3, 4, 5];
+        // Array.prototype.getSum = function () {
+        //     var sum = 0;
+        //     for (var i = 0; i < this.length; i++) {
+        //         sum += i++;
+        //     }
+        //     return sum;
+        // }
+        // console.log(array.getSum());
+        //以下是不可以的！！如果可以修改那么数组中原来的方法会被覆盖，是不可以的
+        // Array.prototype = {
+        //     getSum: function () {
+        //         var sum = 0;
+        //         for (var i = 0; i < this.length; i++) {
+        //             sum += i++;
+        //         }
+        //         return sum;
+        //     }
+        // }
+        // console.log(array.getSum());
+
+
+
+    </script>
+</body>
+
+</html>

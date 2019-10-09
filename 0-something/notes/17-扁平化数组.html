@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        // 第一种：flat()按照一个可指定的深度depth递归遍历数组
+        // let arr = [1,2,[3,4,[5,6,[7,8]]]];
+        // console.log(arr.flat(3));
+
+        // 第二种：扩展运算符...
+        // some() 方法用于检测数组中的元素是否满足指定条件（函数提供）
+        // concat() 方法用于连接两个或多个数组
+        // ... 用于取出参数对象的所有可遍历属性，拷贝到当前对象中
+        // let arr = [1, 2, [3, 4, [5, 6, [7, 8]]]];
+        // function flat(arr) {
+        //     while (arr.some(item => Array.isArray(item))) {
+        //         arr = [].concat(...arr);
+        //     }
+        //     return arr;
+        // }
+        // console.log(flat(arr));
+
+        // 第三种：arr.reduce(function(prev,current,index,arr){})
+        // let arr = [1, 2, [3, 4, [5, 6, [7, 8]]]]
+        // function flatArray(arr) {
+        //     return arr.reduce((prev, item) => {
+        //         return prev.concat(Array.isArray(item) ? flatArray(item) : item);
+        //     }, []);
+        // }
+        // console.log(flatArray(arr));
+
+        // 第四种：当数组内为纯数字时可以使用
+        let arr = [1, 2, [3, 4, [5, 6, [7, 8]]]]
+        function flatArray(arr) {
+        //     //记得最后将得到的字符串元素转化为数字
+            return arr.toString().split(',').map(item => +item);
+        //     //return arr.join(',').split(',').map( item => +item);
+        };
+        console.log(flatArray(arr));
+        
+
+        
+        
+        
+
+
+
+
+    </script>
+</body>
+
+</html>

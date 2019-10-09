@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        div {
+            position: absolute;
+            width: 88px;
+            height: 88px;
+            background-color: #00f;
+            text-align: center;
+            line-height: 88px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        sleep
+    </div>
+
+    <script>
+        //先获取元素
+        var div = document.querySelector('div');
+        //定义全局变量 方便后面使用
+        //触摸第一下的起始位置
+        var startX = 0;
+        var startY = 0;
+        //定义盒子距离上左偏移距离的变量
+        var x = 0;
+        var y = 0;
+        //注册触摸的事件
+        div.addEventListener('touchstart', function (e) {
+            //获取触摸第一下时的位置
+            startX = e.targetTouches[0].pageX;
+            startY = e.targetTouches[0].pageY;
+            //获取盒子上左偏移距离
+            x = this.offsetLeft;
+            y = this.offsetTop;
+        })
+        //注册触摸时移动的事件
+        div.addEventListener('touchmove', function (e) {
+            //定义一个触摸移动之后的位置到触摸第一个位置的距离变量
+            var moveX = e.targetTouches[0].pageX - startX;
+            var moveY = e.targetTouches[0].pageY - startY;
+            //所以移动的距离应该是变化的触摸位置的距离（变量）加上盒子固定的上左偏移距离
+            this.style.left = moveX + x + 'px';
+            this.style.top = moveY + y + 'px';
+            //阻止屏幕默认滚动行为带来的麻烦
+            e.preventDefault();
+        })
+
+    </script>
+</body>
+
+</html>

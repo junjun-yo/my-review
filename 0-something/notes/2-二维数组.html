@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script>
+        // var arr = [
+        //     ['张三', 20, '男', '未婚'],
+        //     ['李四', 23, '男', '未婚'],
+        //     ['王五', 22, '男', '已婚'],
+        //     ['胡美美', 18, '女', '未婚']
+        // ];
+        // for (var i=0;i<arr.length;i++){
+        //     for(var j = 0;j<arr[i].length;j++){
+        //         console.log(arr[i][j]);
+        //     }
+        // }
+
+        var obj = {
+            theadDatas: ["姓名", "年龄", "性别"],
+            tbodyDatas: [
+                { name: "张三", age: 22, sex: "男" },
+                { name: "小蝉", age: 17, sex: "女" },
+                { name: "元芳", age: 26, sex: "男" },
+                { name: "小红", age: 12, sex: "女" },
+                { name: "赵六", age: 48, sex: "男" },
+            ]
+        }
+        var strtable = "";
+        strtable += "<table border='1' width='600' height='300'>";
+       
+            strtable += "<tr>";
+            for (var j =0;j<obj.theadDatas.length;j++){
+                // document.write(obj.theadDatas[j]);
+                strtable += "<th>" + (obj.theadDatas[j]) + "</th>";
+            }
+            strtable += "</tr>";
+            for (var i =0;i<obj.tbodyDatas.length;i++){
+                strtable += "<tr>";
+                for (var k in obj.tbodyDatas[i]){
+                    // document.write(obj.tbodyDatas[i][k]);
+                    strtable += "<td>" + (obj.tbodyDatas[i][k]) + "</td>";
+                }
+                strtable += "</tr>";
+            }
+          
+        
+        document.write(strtable);
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

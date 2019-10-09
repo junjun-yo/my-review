@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .ani {
+            width: 480px;
+            height: 320px;
+            margin: 50px auto;
+            overflow: hidden;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 1);
+            background-size: cover;
+            background-position: center;
+            animation: loops 10s infinite;
+            /* -webkit-animation-name: "loops"; 
+            -webkit-animation-duration: 10s; 
+            -webkit-animation-iteration-count: infinite;
+         */
+        }
+
+        @keyframes loops {
+            0% {
+                background: url(images/ali.jpg);
+            }
+
+            25% {
+                background: url(images/djnl.jpg);
+            }
+
+            50% {
+                background: url(images/ali.jpg);
+            }
+
+            75% {
+                background: url(images/shangjin.jpg);
+            }
+
+            100% {
+                background: url(images/xindela.jpg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ani"></div>
+</body>
+
+</html>

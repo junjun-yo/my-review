@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <div>{{msg}}</div>
+        <!-- 
+            在我们的输入框中本身就有一个value属性 
+            使用vue给标签绑定属性 使用是 v-bind:属性名
+            绑定事件 v-on:input事件 
+        -->
+        <input type="text" :value="msg" @input="handle">
+    </div>
+    <script src="js/vue.js"></script>
+    <script>
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                msg: 'hello Vue'
+            },
+            methods: {
+                handle(e){
+                    // console.log(e.target.value)
+                    this.msg = e.target.value;
+                }
+            },
+        })
+    </script>
+
+</body>
+
+</html>

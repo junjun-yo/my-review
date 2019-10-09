@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        function getRandom(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        // a = getRandom(2, 32);
+        // console.log(a);
+        function fn(n, m, c) {
+            let arr = [];
+            do {
+                let a = getRandom(n, m);
+                if (!arr.includes(a)) {
+                    arr.push(a);
+                }
+            } while (arr.length < c)
+            return arr;
+        }
+        fn(2, 32, 5);
+        console.log(fn(2, 32, 31));
+        let arr1 = fn(2, 32, 31).sort((a, b) => a - b);
+        console.log(arr1);
+    </script>
+</body>
+
+</html>

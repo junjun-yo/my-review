@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <!-- <input type="text">
+    <p></p>
+    <script>
+        var input = document.querySelector('input');
+        var p = document.querySelector('p');
+        // onkeyup无法监听到复制黏贴导致的内容变化，可以使用oninput事件
+        input.addEventListener('input', function () {
+            var value = input.value;
+            p.innerHTML = value;
+        })
+    </script> -->
+
+
+    <div id="app"></div>
+    <hr>
+    <input type="text">
+    <script>
+
+        // 给input这个注册oninput事件 
+        var inputObj = document.querySelector('input');
+        // 我们需要将输入框里面的内容写到#app这个div中所以也需要获取到id=app这个标签 
+        var divObj = document.querySelector('#app');
+        // 定义空数组 
+        var obj = {};
+        // 如果我们给obj这个对象手动的添加一个txt的方法 那么就会调用defineProperty这个方法中的set方法 
+        Object.defineProperty(obj, 'txt', {
+            set: function (v) {
+                // console.log("该方法被调用了 因为我们手动的给obj对象添加了一个叫txt属性");
+                // 当这个方法被调用了我们的目的是想将输入框里面的内容写入到div中 
+                divObj.innerHTML = v;
+            }
+        });
+        // 给input标签对象注册oninput事件 
+        inputObj.oninput = function () {
+            obj.txt = this.value;
+        }
+
+    </script>
+
+</body>
+
+</html>
