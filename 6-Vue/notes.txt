@@ -1,0 +1,26 @@
+1.搭建vue-cli的方式：
+①vue create name
+②vue ui
+
+2.路由守卫：
+router.beforeEach((to, from, next) => {
+  //根据字段判断是否路由过滤
+  if (to.matched.some(record => record.meta.auth)) {
+    if (getToken() !== null) {
+      next()
+    } else {
+      //防止无限循环
+      if (to.name === 'login') {
+        next();
+        return
+      }
+      next({
+        path: '/login',
+      });
+    }
+  } else {
+    next()//若点击的是不需要验证的页面,则进行正常的路由跳转
+  }
+});
+
+3.请求拦截和响应拦截
