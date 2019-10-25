@@ -1,9 +1,11 @@
 10.22
 路由中可以自定义一个meta字段（元数据），可以设置一些状态来进行一些操作
+-------------------------------------------
 10.23
 v-for循环，添加点击事件，将index传入，动态绑定一个class类名，先将isActive赋值为0，默认高亮第一个，在点击事件中，将传入的index赋值为isActive，就可以实现点击高亮
+-------------------------------------------
 10.24
-全局注册自定义的组件：
+①全局注册自定义的组件：
 首先引入vue，和组件文件
 import Vue from "vue";
 import table from "./table";
@@ -13,10 +15,13 @@ const elements = { table, date, select, checkbox, number, radio };
 Object.keys(elements).forEach(key => {
   Vue.component("oa-" + key, elements[key]);
 });
--------------------------------------------
-vue中的watch
+②vue中的watch
 handler方法是watch中默认的，vue.js会去执行这个逻辑
 immediate：true 可以在绑定时就立即执行监听函数，不用等到监听函数变化再执行
 deep：true 可以实现深度监听
 watch在用完后需要注销，否则会造成内存溢出，不过我们平时写在组件中，会随着组件的销毁而销毁
 如果需要手动注销时：app.$watch调用后会返回一个值，unWatch方法，调用unWatch方法就可以实现注销监听
+-------------------------------------------
+10.25
+①遇到兼容性的问题，可以判断数据是否渲染到了页面，是不是因为样式原因没有展示出来，审查元素及调整样式，来处理兼容性问题
+
