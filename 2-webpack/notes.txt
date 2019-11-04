@@ -20,6 +20,32 @@ npm install --save-dev webpack
 2.npm run build 打包
 3.优化-使用CDN
 
+配置：
+在webpack.config.js中增加节点（也可以直接在运行中使用eg：webpack --open --hot --port 30）
+devServer:{
+	open:true,		编译完成自动打开链接
+	hot:true,			热更新
+	compress:true,		启用压缩
+	port:3000,		端口号
+	contentBase:'./src'		基于目录文件夹
+}
+
+在webpack.config.js中增加节点
+plugins:[
+	html的配置
+]
+
+在webpack.config.js中增加节点
+module：{
+  rules: [
+    {
+	test:/\.css$/,
+	use:['style-loader','css-loader']
+    }
+  ]
+}
+
+
 我们打包完项目后，进行测试，浏览器会进行一些缓存，像css和js。如果我们修改了一些函数，修复了一些bug，重新打包，再用浏览器测试，浏览器怎么识别这个新的js？
 浏览器缓存后 有些时候需要主动清除缓存，或者加文件名上面加上版本号比如xxx.js?v=0.101
 后面就是版本号 可以根据版本号 判断是否会重新拉取新的js css
