@@ -24,3 +24,13 @@ router.beforeEach((to, from, next) => {
 });
 
 3.请求拦截和响应拦截
+
+4.自定义指令（指令中有生命周期，绑定的时候会触发bind，更新的时候也会触发update）
+vue.directive('自定义指令名',{  })
+绑定后执行bind函数
+bind（绑定的元素，传的参数，虚拟节点）{ 
+	document.addEventListener()
+}
+bind（解绑的元素）{
+	document.removeEventListener()
+}
