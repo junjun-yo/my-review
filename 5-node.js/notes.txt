@@ -1,1 +1,105 @@
 第三方模块 构建工具--gulp
+
+账号：qianduan035  密码：95069259
+C:\Users\59494\AppData\Roaming\npm
+node.js全局对象是global
+在控制台中输入：
+ls 列出当前目录所有的文件与文件夹
+cd 改变目录 change directory 格式： cd 文件名
+clear 清除所有文字 
+暴露对象：
+exports 或者 module.exports;
+模块化开发
+fs模块 
+const fs = require ('fs') 请求获取系统文件模块
+fs.readFile（'文件名称','utf-8',（err,doc）=>{});  读取文件
+fs.writeFile ('文件名称','要输入的内容'，err=>{}); 书写文件
+path模块
+const path = require('path') 请求获取文件路径
+__dirname 获取当前文件的绝对路径
+path.join(__dirname,'目录','文件名称') 用系统目录的分隔符/连接路径
+下载第三方模块(通过npm下载)
+在cmd中输入npm install nodemon -g;
+以后执行的js文件 不通过node命令来执行，用nodemon命令来执行
+安装好之后，文件被更改时，不中断，会自动更新，ctrl + c 终止cmd自动更新
+nrm ls  // nrm use taobao更改下载来源
+gulp
+库文件本地安装 控制行命令全局安装
+1. gulp的插件:
+       1. gulp-htmlmin:html代码压缩 安装 npm install --save gulp-htmlmin
+       2. gulp-file-include:html公共模块提取 npm install gulp-file-include 
+       3. gulp-less:less语法转化 npm install gulp-less 转成css；
+       4. gulp-csso:css压缩 npm install gulp-cssgo
+       5. gulp-babel:JavaScript语法转化 npm install --save-dev gulp-babel @babel/core @babel/preset-env
+       6. gulp-uglify:压缩混淆js代码 npm install --save-dev gulp-uglify
+       7. ！！！！！！注意！Gulp 4最大的变化就是你不能像以前那样传递一个依赖任务列表 如果Gulp是4.0的版本需要手动指定版本号 比如 npm install gulp@3.9.1 -D
+gulp.task 建立任务
+gulp.src 引用地址
+
+b/s架构 b浏览器 s服务器
+IP 协议地址
+PID 端口
+URL 统一资源定位符
+特殊的ip地址 127.0.0.1 代表本机
+特殊的域名 localhost 代表本机
+403 无权限访问
+路由：请求与相应的对应关系
+
+nodejs http 客户端请求的data和 end 事件
+req.on('data',()=>{})： 当服务端接收到数据时触发
+req.on('end',()=>{})：数据接收完时触发
+
+创建集合:  1.对集合设定规则，
+const courseSchema = new mongoose.Schema({
+	name:String,
+	author:String,
+	age:Number
+});
+	2.通过集合规则创建集合 
+const Course = mongoose.model('集合名称Course','应用规则名称courseSchema') 
+	3.通过集合创建文档
+const doc = new Course({
+    name: 'node.js',
+    author: 'zzz',
+    age: 5
+});
+	4.调用.save()方法，将文档插入数据库
+doc.save();	save前面的名称就是创建的文档的变量名
+
+*****mongoose集合命名的实例
+var mongoose = require("mongoose");
+mongoose.connect('mongodb://localhost/haha');
+var Man = mongoose.model('People',{name:String});
+var jack = new Man({name:'Jack'});
+jack.save(function(err){	
+console.log('hello');
+});
+--------------------- 
+
+初始化：npm init -y  产生一个json文件
+http 协议模块
+mongoose 数据库模块
+router 路由模块
+template 配置目录
+serve-static 静态资源
+修改index列表的提交方式
+导入querystring  querystring将字符串数据转化为对象模式
+添加post的on事件接收数据
+（异步函数）添加到数据库
+res301 、list
+在get /list中 读取数据 
+修改List中的数据
+npm i dateformat 事件格式模块
+
+文件夹：
+model数据库连接 创建集合
+public 静态资源
+views 模板
+router 路由
+app.js 项目入口文件
+
+cmd中ren *.html *.art  将所有html文件转变为art文件
+
+向模板中导入变量 template.defaults.imports.变量名 = 变量值; 
+设置模板根目录 template.defaults.root = 模板目录
+设置模板默认后缀 template.defaults.extname = '.art' 
