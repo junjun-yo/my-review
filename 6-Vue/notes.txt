@@ -34,3 +34,8 @@ bind（绑定的元素，传的参数，虚拟节点）{
 bind（解绑的元素）{
 	document.removeEventListener()
 }
+
+5.this.$router.push（） 可以返回上一级路由，与<router-link  to=‘’>类似
+this.$router.replace（）  由跳转路由替代当前路由 不可返回
+导航栏的回退按钮可以做判断，如果历史记录中有可以回退的路由则回退，没有就跳回主页面
+window.history.length > 1 ? this.$router.go(-1) : this.$router.push('/')
