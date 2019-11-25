@@ -1,0 +1,10 @@
+const router = [
+  {
+    path: "grsw/sys_user_group",
+    name: "grsw_user_group",
+    component: resolve => require(["views/grsw/sys_user_group/index"], resolve),
+    meta: { title: "常用人员组", icon: "icon-monitor" }
+  }
+];
+
+export default router;

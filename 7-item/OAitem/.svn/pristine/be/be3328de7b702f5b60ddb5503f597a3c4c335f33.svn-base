@@ -1,0 +1,98 @@
+<template>
+  <el-container class="app-frame">
+    <el-aside class="app-aside" :class="isCollapse?'collapse':'nocollapse'">
+      <div class="manage">
+        <div class="manage-photo">
+          <img :src="manage" />
+        </div>
+        <div class="manage-info">
+          <p>{{sysAccount.userName}}-办公室</p>
+        </div>
+      </div>
+      <div class="inner-aside">
+        <div class="aside-nav">
+          <el-menu
+            :default-active="defaultActive"
+            class="el-menu-vertical-demo"
+            background-color="#263238"
+            text-color="#fff"
+            @select="menuSelect"
+            :unique-opened="true"
+            :collapse="isCollapse"
+            :collapse-transition="false"
+          >
+            <template v-for="(menu,index) in menus">
+              <el-submenu :index="`${index}`" v-if="menu.children && menu.children.length>0">
+                <template slot="title">
+                  <i :class="menu.moduleImage" v-if="menu.moduleImage"></i>
+                  <span slot="title">{{menu.moduleName}}</span>
+                </template>
+                <el-menu-item
+                  :index="child.moduleUrl || child.id"
+                  v-for="(child,j) in menu.children"
+                  :key="j"
+                >{{child.moduleName}}</el-menu-item>
+              </el-submenu>
+              <el-menu-item :index="menu.moduleUrl || menu.id" v-else>
+                <template v-show="menu.moduleImage">
+                  <i :class="menu.moduleImage"></i>
+                </template>
+                <span slot="title">{{menu.moduleName}}</span>
+              </el-menu-item>
+            </template>
+          </el-menu>
+        </div>
+      </div>
+    </el-aside>
+    <el-container class="app-main">
+      <el-header class="main-header">
+        <div class="h-left">
+          <i
+            class="header-btn"
+            :class="isCollapse? 'el-icon-s-unfold':'el-icon-s-fold'"
+            @click="minNav"
+          ></i>
+          <nav>
+            <ul>
+              <li
+                v-for="(item,index) in navMenus"
+                :class="{active: navActive==index}"
+                @click="loadChildMenu(index,item.key)"
+              >{{item.title}}</li>
+            </ul>
+          </nav>
+        </div>
+        <div class="h-right">
+          <div class="right-btn el-icon-plus" title="新建"></div>
+          <div class="right-btn el-icon-s-home" title="主页" @click="toHome"></div>
+          <div class="right-btn el-icon-message-solid" title="消息提醒"></div>
+          <div class="right-btn el-icon-menu" title="门户切换"></div>
+          <div class="right-btn el-icon-s-tools" title="系统配置"></div>
+          <div class="right-btn el-icon-switch-button" title="注销" @click="logout"></div>
+        </div>
+      </el-header>
+      <el-main class="main-content">
+        <div class="sys-tabs">
+          <el-tabs type="card" v-model="curMenuTab" @tab-click="tabClick" @tab-remove="tabRemove">
+            <el-tab-pane
+              :closable="item.key != '/'"
+              v-for="(item, index) in menuTabs"
+              :key="item.key"
+              :label="item.title"
+              :name="item.key"
+            >{{item.content}}</el-tab-pane>
+          </el-tabs>
+        </div>
+        <div style="height:calc(100% - 40px);">
+          <router-view v-if="refresh"></router-view>
+        </div>
+      </el-main>
+    </el-container>
+  </el-container>
+</template>
+
+<script src="./index.js">
+</script>
+
+<style lang='scss'  src="./index.scss">
+</style>

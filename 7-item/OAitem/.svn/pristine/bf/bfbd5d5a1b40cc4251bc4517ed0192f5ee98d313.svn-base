@@ -1,0 +1,187 @@
+<template>
+    <el-container style="height:100%;">
+        <el-header style="background-color: #f2f2f2;border-radius:5px;">
+            <el-row style="margin-top: 15px;">
+                <el-col :span="10">
+                    <el-button icon="el-icon-arrow-left" @click="close">返回</el-button>
+                    <el-button type="info" plain icon="el-icon-search">打印预览</el-button>
+                    <el-button type="info" plain icon="el-icon-share">查看流程</el-button>
+                    <el-button type="info" plain icon="el-icon-refresh-right">生成正文</el-button>
+                </el-col>
+                <el-col :span="14" style="text-align: right;">
+                    <el-button type="info" plain icon="el-icon-edit">意见</el-button>
+                    <el-button type="info" plain icon="el-icon-paperclip" @click="save">保存</el-button>
+                    <el-button type="primary" plain icon="el-icon-s-promotion" @click="subSave">提交</el-button>
+                    <el-button type="warning" plain icon="el-icon-arrow-left">回退</el-button>
+                    <el-button type="danger" plain icon="el-icon-warning">取回</el-button>
+                </el-col>
+            </el-row>
+        </el-header>
+        <el-container style="height: 100%;">
+            <el-aside class="app-aside" :class="isCollapse ? 'collapse' : 'nocollapse'" style="height:100%;background-color: rgb(238, 241, 246);position: relative;overflow-y: auto;overflow-x: hidden;">
+                <div class="collapse-btn" @click="isCollapse=!isCollapse">
+                    <i v-if="isCollapse" class="el-icon-caret-left"></i>
+                    <i v-if="!isCollapse" class="el-icon-caret-right"></i>
+                </div>
+                <el-card class="box-card" style="margin: 20px;">
+                    <div slot="header" class="clearfix">
+                        <span>表单附件</span>
+                        <el-button style="float: right; padding: 3px 0" type="text"><i class="el-icon-plus"></i>新增</el-button>
+                    </div>
+                    <div v-for="o in 4" :key="o" class="text item">
+                        <el-link>{{'列表内容 ' + o }}</el-link>
+                    </div>
+                </el-card>
+
+                <el-card class="box-card" style="margin: 20px;">
+                    <div slot="header" class="clearfix">
+                        <span>审批意见</span>
+                    </div>
+                    <div v-for="o in 40" :key="o" class="text item">
+                        <el-link>{{'列表内容 ' + o }}</el-link>
+                    </div>
+                </el-card>
+            </el-aside>
+            <el-main style="">
+                <render v-if="widgetForm" :data="widgetForm" v-model="submitVariables.flowVariables.variables" />
+            </el-main>
+        </el-container>
+        <el-footer>{{submitVariables}}</el-footer>
+    </el-container>
+</template>
+
+<script>
+import render from "@/components/FormDesign/render";
+import store from "@/store";
+export default {
+    props: {
+        taskId: String,
+        flowId: String,
+        stepKey: String,
+        formId: String,
+        instanceId: String,
+        fmId: String
+    },
+    components: {
+        render
+    },
+    computed: {
+
+    },
+    data() {
+        return {
+            store,
+            isCollapse: true,
+            data: Object,
+            formInfo: null,
+            widgetForm: null,
+            submitVariables: {
+                assignee: {
+                    approval: "",
+                    taskId: "",
+                    userId: store.state.account.sysUser.id
+                },
+                flowVariables: {
+                    localScope: false,
+                    transientVariables: {},
+                    variables: {}
+                },
+                nextStep: null,
+                toAssignees: null
+            }
+        };
+    },
+    methods:{
+        loadFormInfo() {    //读取当前表单定义对象信息
+            Ajax.post("/common/form/get", {
+                id: this.formId
+            }).then(res => {
+                console.log(res.data);
+                this.formInfo = res.data;
+                let form = JSON.parse(this.formInfo.content);
+                this.widgetForm = form;
+                // if (form.list.length > 0) {
+                //     this.widgetFormSelect = form.list[0];
+                // }
+            });
+        },
+        loadFormData(){     //读取当前表单实例数据信息
+            Ajax.get("/common/form/data/get", {
+                formId: this.formId,
+                fmId: this.fmId
+            }).then(res => {
+                console.log(res);
+                if(res.data && res.data.length>0){
+                    // this.formData = res.data[0];
+                    this.submitVariables.flowVariables.variables = res.data[0];
+                }
+            });
+
+        },
+        selectAssignee(){   //选择执行人
+             this.$openUserSelect({
+                allowCheckCount: 1, //只能选一个的参数
+                defaultCheck: undefined, //多个值接收数组
+                confirm: data => {
+                    //多个为id的数组，一个为id的字符串
+                    console.log(data);
+                    this.submitVariables.toAssignees = data;
+                }
+            });
+        },
+        async save(){
+            Ajax.put("/flow/task/save",this.submitVariables,"json").then(
+                res => {
+                    this.$message({
+                        message: "保存成功！",
+                        type: "success"
+                    });
+                    this.$emit("confirm");
+                }
+            );
+        },
+        subSave(){
+            alert("提交下一步流程");
+            this.$emit("confirm");
+        },
+        close(){
+            this.$emit("close");
+        }
+    },
+    created() {
+        this.loadFormInfo();
+        this.loadFormData();
+        this.submitVariables.assignee.taskId = this.taskId;
+        console.log(this.submitVariables);
+    }
+};
+</script>
+
+<style scoped lang="scss">
+    .collapse {
+         width: 240px !important;
+         transition: width 0.1s;
+     }
+    .nocollapse {
+        width: 15px !important;
+        transition: width 0.1s;
+     }
+    .collapse-btn{
+        cursor: pointer;
+        position: absolute;
+        right: 0px;
+        top: 50px;
+        height: 80px;
+        width: 15px;
+        background: #fff;
+        text-align: center;
+        line-height: 80px;
+        vertical-align: middle;
+        border-radius: 8px 0px 0px 8px;
+        border:1px solid rgb(238, 241, 246);
+        border-right: none;
+        &i{
+         width:15px;
+         }
+    }
+</style>

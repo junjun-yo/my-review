@@ -1,0 +1,219 @@
+<template>
+  <div style="overflow:auto;height:100%">
+    <el-tag>当前登录的 sysAccount</el-tag>
+    {{sysAccount}}
+    <el-divider />
+    <el-tag>当前登录的 sysUser</el-tag>
+    {{sysUser}}
+    <el-divider />
+    <el-tag>当前登录的 sysDept</el-tag>
+    {{sysDept}}
+    <el-divider />
+    <el-tag>当前登录的 sysUnit</el-tag>
+    {{sysUnit}}
+    <el-divider />
+    <el-tag>当前登录的 moduleList</el-tag>
+    {{moduleList}}
+    <el-divider />
+    <el-tag>当前登录的 positionList</el-tag>
+    {{positionList}}
+    <el-divider />
+    <button @click="upload">文件上传</button>
+    <file-upload
+      :props="props"
+      tip="上传文件自定义提示"
+      limitType="jpg,doc"
+      v-model="fileList"
+      :limitSize="20"
+      @click="fileClick"
+    />
+    <br />
+    <hr />
+    <br />
+    <button @click="formDesign">表单设计组件（开发中...请不要修改组件代码）</button>
+    <br />
+    <br />
+    <hr />
+    <button @click="userSelect">人员选择组件</button>
+    <br />
+    <br />
+    <div v-width="500">
+      <user-select v-model="userId" />
+      <br />
+      <span>{{userId}}</span>
+    </div>
+    <hr />
+    <button @click="roleSelect">角色选择组件</button>
+    <br />
+    <div v-width="500">
+      <role-select v-model="roleId" />
+      <br />
+      <span>{{roleId}}</span>
+    </div>
+    <br />
+    <hr />
+    <button @click="leftTree_all">全部单位-左侧树-单位/部门树</button>
+    <button @click="leftTree_current">本单位-左侧树-单位/部门树</button>
+    <button @click="leftTree_role">本单位-左侧树-角色树</button>
+    <button @click="leftTree_group">本单位-左侧树-分组树</button>
+    <br />
+    <button @click="right_dept_user">本单位-右侧列表-单位/部门-用户列表</button>
+    <button @click="right_role_user">本单位-右侧列表-角色-用户列表</button>
+    <button @click="right_group_user">本单位-右侧列表-分组-用户列表</button>
+    <br />
+    <button @click="all_search_user">全部单位-用户查询-用户列表</button>
+    <button @click="current_search_user">本单位-用户查询-用户列表</button>
+    {{1|dict('wj')}}
+  </div>
+</template>
+
+<script>
+import { mapState } from "vuex";
+// import formDesign from "@/components/FormDesign";
+export default {
+  computed: {
+    ...mapState({
+      sysAccount: state => state.account.sysAccount,
+      sysUser: state => state.account.sysUser,
+      sysDept: state => state.account.sysDept,
+      sysUnit: state => state.account.sysUnit,
+      moduleList: state => state.account.moduleList,
+      positionList: state => state.account.positionList
+    })
+  },
+  data() {
+    return {
+      userId: "c7a87d6f4e534cf993d63b403f0deae8",
+      roleId: "94974c43690b4cbdb1a42ff8a6a3a746",
+      props: {
+        fileId: 123,
+        type: "wj"
+      },
+      fileList: []
+    };
+  },
+  methods: {
+    fileClick(file) {
+      console.log(file);
+    },
+    upload() {
+      this.$upload({
+        limit: 1,
+        limitType: "jpg,doc",
+        limitSize: 200,
+        props: {
+          type: "fj",
+          fileId: "1234567"
+        },
+        click: data => {
+          console.log(data);
+        },
+        confirm: data => {
+          console.log(data);
+        }
+      });
+    },
+    leftTree_all() {
+      Ajax.post("/system/addressBook/selectUserTreeList", {
+        showType: "1",
+        queryId: ""
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    leftTree_current() {
+      Ajax.post("/system/addressBook/selectUserTreeList", {
+        showType: "1",
+        queryId: "7ac6441f78bd4db2907a09d55e757be8" //登录用户缓存数据中的sysUnit中的deptid
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    leftTree_role() {
+      Ajax.post("/system/addressBook/selectUserTreeList", {
+        showType: "2"
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    leftTree_group() {
+      Ajax.post("/system/addressBook/selectUserTreeList", {
+        showType: "3"
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    right_dept_user() {
+      Ajax.post("/system/addressBook/searchUserList", {
+        showType: "1",
+        queryId: "3a983e24cc1245fd8be29a5480f44a44" //从左侧单位/部门树中点击的树节点的id
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    right_role_user() {
+      Ajax.post("/system/addressBook/searchUserList", {
+        showType: "2",
+        queryId: "5185cb6f9dd042a69b637c35cd9d1b18" //从左侧角色列表树中点击的树节点的id
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    right_group_user() {
+      Ajax.post("/system/addressBook/searchUserList", {
+        showType: "3",
+        queryId: "0455706065d34d37a808aa2e29dc986b" //从左侧角色列表树中点击的树节点的id
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    all_search_user() {
+      Ajax.post("/system/addressBook/searchUserList", {
+        showType: "4",
+        queryId: "",
+        userName: "李" //查询的用户名
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    current_search_user() {
+      Ajax.post("/system/addressBook/searchUserList", {
+        showType: "4",
+        queryId: "7ac6441f78bd4db2907a09d55e757be8", //登录用户缓存数据中的sysUnit中的deptid
+        userName: "李" //查询的用户名
+      }).then(res => {
+        console.log(res.data);
+      });
+    },
+    userSelect() {
+      this.$openUserSelect({
+        // allowCheckCount: 1, //只能选一个的参数
+        defaultCheck: "c7a87d6f4e534cf993d63b403f0deae8", //多个值接收数组
+        confirm: data => {
+          //多个为id的数组，一个为id的字符串
+          console.log(data);
+        }
+      });
+    },
+    roleSelect(){
+      this.$openRoleSelect({
+        defaultCheck: this.roleId,
+        confirm: data => {
+            console.log(data);
+            this.roleId = data.map(item=>item.key).join(",");
+        }
+      });
+    },
+    formDesign() {
+      this.$open({
+        title: "表单设计",
+        fullScreen: true,
+        component: formDesign
+      });
+    }
+  }
+};
+</script>
+
+<style lang='scss' scoped>
+</style>

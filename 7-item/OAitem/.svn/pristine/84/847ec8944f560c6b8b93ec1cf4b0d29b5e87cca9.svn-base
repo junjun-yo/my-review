@@ -1,0 +1,516 @@
+
+<template>
+<div>
+    <el-container direction="vertical">
+    <el-header class="el-header-adjust">
+    <template>
+      <el-form :inline="true" :model="queryForm" class="demo-form-inline">
+        <div class="toolbar" style="text-align:right">
+          <div style="position:relative;display:inline-block;float:left">
+            <el-form-item>
+              <el-button type="primary" @click="addFile">新建文件夹</el-button>
+              <el-upload
+                :action="fileUploadUrl"
+                :before-remove="beforeRemove"
+                :on-preview="handlePreview"
+                :on-success="handleSuccess"
+                :on-remove="handleRemove"
+                :on-error="handleError"
+                multiple
+                :show-file-list="false"
+                :headers="headers"
+                style="display:inline-block;margin:0px 9px"
+              >
+              <el-button  type="primary">上传文件</el-button>
+              </el-upload>
+              <el-button type="primary" @click="handleDelRows(sels)">删除</el-button>
+              <!--handleDelRows(scope.$index, scope.row) -->
+            </el-form-item>
+          </div>
+         <div style="position:relative;display:inline-block;vertical-align:middle">
+             <el-form-item style="vertical-algin:middle">
+                 <el-input  placeholder="请输入名称" v-model="input" clearable></el-input>
+                 <!-- v-model="queryForm.keyword" -->
+             </el-form-item>
+              <el-form-item style="vertical-align:middle">
+                 <!-- <el-button-group> -->
+                     <el-button type="primary" style="margin-top:4px" icon="el-icon-search" @click="loadTableData()">查询</el-button>
+                 <!-- </el-button-group> -->
+             </el-form-item>
+         </div>
+        </div>
+        <el-divider></el-divider>
+        <template v-if="showMore">
+          <div class="more-content">
+            <slot :queryForm="queryForm" name="more"></slot>
+          </div>
+          <el-divider></el-divider>
+        </template>
+      </el-form>
+    </template>
+    </el-header>
+    <el-container >
+    <el-aside width="16%" display="inline-block" vertical-algin="top" height="413px" overflow="auto" >
+     <!-- 下部分整体 -->
+    <div class="sxy-filingCabinet-main">
+      <!-- 下部分 树结点 -->
+      <div class="sxy-filingCabinet-main__tree"> 
+     <el-card class="full-card" shadow="never">
+        <div slot="header" class="clearfix card-header">
+          <span>文件夹列表</span>
+          <i
+            class="el-icon-refresh"
+            style="float: right;padding:0;font-size:20px;"
+             @click="refreshFileTree"
+          ></i>
+        </div>
+        <div style="height:100%">
+        <!--  api   url  -->
+        <ztree class="sxy-ztree"
+          url="/system/FilingCabinet/searchTreeList"
+          @click="nodeClick"
+          title="文件"
+          ref="fileTree"          
+        />
+        </div>
+     </el-card>
+      </div>
+      
+    </div>   
+    </el-aside>
+    <!-- @selection-change="selsChange" -->
+    <el-main width="84%" display="inline-block" vertical-algin="top" style="padding-top:0">
+        <!-- showToolbar -->
+    <oa-table  :ajax="ajaxParams" :columns="columns" :data="tableDatas" showCheck showPage 
+              @check="onCheck" :add="addFunc" ref="table" 
+            :sort="['name','size','userName']">        
+    </oa-table >
+    <!-- 复选框 -->
+    <el-table-column
+        type="selection"
+        width="55" >
+    </el-table-column>
+    <!-- 复选框end -->
+    <!-- id -->
+    
+    <!-- id end -->
+    </el-main>
+    </el-container>
+    </el-container>
+</div>
+</template>
+
+
+<script>
+    import formComponent from "./component/form";
+    import newForm from "./component/new_from";
+    import { callbackify } from 'util';
+
+    //暂定添加
+  //  import store from "@/store";
+
+    export default {
+        props: {
+            height: Number,
+            props: Object
+        },
+        watch: {
+                     props() {
+                        this.loadTableData();
+                        }
+                    },
+        data() {
+            return {
+                /**批量删除多行选中添加的值显示 */
+                sels: [],//选中的值显示
+                input:'',
+            //  store,
+                /* tree start */
+                curNode: {
+                    item: {}
+                },
+                tableDatas: [],
+                tableLoading: false,
+                /* tree end */
+                /**文件上传 */
+                 fileUploadUrl: `${process.env.VUE_APP_BASE_API}/system/FilingCabinet/upload`,
+                        headers: {
+                    Authorization: localStorage.getItem("token")
+                 },
+
+                 /** tree */
+            // props1: {
+            //     label: 'label',
+            //     children: 'children',
+            //     isLeaf:'leaf'
+            //     },
+            // data1:[{
+            //     label: '文档',
+            //     children: [],
+            //      }],
+            treeNode:{},
+            pointNode:{},
+            treeKey:'', 
+
+            page: {
+                pageNumber: 1,
+                pageSize: 10,
+                total: 10
+                },
+                //表格异步请求数据参数  ~接受树传过来的参数
+                ajaxParams: {
+                    url: "system/FilingCabinet/page",
+                    method: "post",
+                    params: {
+                        keyword : "",
+                        //值
+                        id:"",
+                        name:""
+                       // name:this.curNode.name
+                    }
+                },
+              
+                //列头属性配置
+                columns: [
+                    {
+                        label: "名称",
+                        prop: "name",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.name;
+                        }
+                    },
+                    {
+                        label: "大小",
+                        prop: "size",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.size;
+                        }
+                    },
+                    {
+                        label: "创建人",
+                        prop: "userName",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.userName;
+                        }
+                    },
+                    {
+                        label: "操作",
+                        align: "center",
+                        //单元格自定义渲染操作
+                        opts: [
+                            {
+                                //按钮名称
+                                title: "重命名",
+                                //回调事件，入参：（1：行数据，2：行角标）
+                                click: this.editRow
+                            },
+                            {
+                                title: "删除",
+                                click: this.deleteRow,
+                            }
+                        ]
+                    }
+                ]
+            };
+        },
+         methods: {
+            /**sels  多选删除 */
+              //选中触发
+            selsChange(sels) {
+                  this.sels =sels
+              },
+            /**绑定事件，获取所有选中行id */            
+           handleDelRows() {
+              var ids =this.sels.map(item => item.id).join()//获取所有选中行的id组成的字符串，以逗号分隔
+              console.log(ids)
+              this.$confirm('此操作将删除该文件','提示',{
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消',
+                  type: 'warning'
+              }).then(() => {
+                Ajax.delete("/system/FilingCabinet/deleteByIds",{
+                      ids:ids
+                  }).then (res => {
+                      this.$message.success("删除成功");
+                      // 传递到后台处理的方刷新页面
+                   //   if (res.data.status == 200){//出错 status未定义
+                         //  confirmButtonText:'确定',
+                         //  console.log(JSON.stringify("删除成功"))
+                         //  console.log("删除成功"),
+                      this.$refs.table.reload()
+                   //   }
+                  })
+              })
+          },
+
+           /**   批量删除前提示语句
+              checkSelection () {
+                  if (this.selection && this.selection.length) {
+                      return true
+                  } else {
+                      this.$message.error('请先选择数据！');                     
+                  }
+             },
+            */
+
+            /** 
+              删除选中的数据
+              handleDelRows () {
+                  if (this.checkSelection()) {
+                      this.table.delRows(this.selection)
+                  }
+              },
+            */
+
+             /** tree */
+
+             //删除文件夹 --待定
+             /** 
+             removeFile(data) {
+                 this.$confirm("此操作将永久删除该文件及其下级文件信息，同时文件的数据项信息也将永久删除, 是否继续?","提示",
+                 {
+                     confirmButtonText: "确定",
+                     cancelButtonText: "取消",
+                     type: "warning"
+                 }
+                 )
+                 .then(() => {
+                    Ajax.delete("/system/FilingCabinet/delete", {  //删除路径接口 
+                        id: data.id 
+                 }).then(
+                     res => {
+                         this.$message({
+                             $message: "删除成功！",
+                             type: "success"
+                         });
+                         this.refreshFileTree();//删除成功后刷新，1查询2文件夹列表刷新 
+                     },
+                     err => {}
+                 );
+                 })
+                 .catch(() => {});
+             },*/
+
+
+        /** 
+             //加载文件列表
+             loadTableData() {
+                this.tableLoading = true;
+                Ajax.post("/system/FilingCabinet/searchFileList", {
+                unitId: this.curNode.id,
+                name: this.queryParams.Name,               
+                pageNumber: this.page.pageNumber,
+                pageSize: this.page.pageSize
+            }).then(res => {
+                this.tableDatas = res.data;
+                alert(res.data);
+              // this.ajaxParams = res.data;//绑定表table 数据刷新
+                this.page.total = res.total;
+                this.tableLoading = false;
+            });
+            },
+         */
+             
+               
+              //加载文件列表
+                loadTableData() {
+                this.tableLoading = true;
+                let params = 
+                {
+                  // userName: this.props.userName
+                  userName:this.ajaxParams.userName,
+                  name:this.ajaxParams.name,
+                  size:this.ajaxParams.size
+             //   },
+             //   this.page
+                };
+            Ajax.post("/system/FilingCabinet/searchFileList", params).then(res => {
+                this.tableDatas = res.data;
+                this.page.total = res.total;
+                this.tableLoading = false;
+            })
+            .catch(err => {
+                console.log(err);
+           
+            });
+         },
+         
+            //新建文件夹
+            addFile() {
+                this.$open({
+                    component: newForm,
+                    props: {
+                         parentId:this.curNode.id,
+                         parentName:this.curNode.name
+                    },
+                    width:"500px",
+                    confirm: () => {
+                        this.refreshFileTree();
+                        this.$refs.table.reload();
+                    }
+                });
+            },
+
+            /**编辑文件夹 */
+            /**
+             * 
+             * 
+             * 
+             * 
+             * 
+             */
+            //点击文件夹节点
+            nodeClick(data) {
+                
+                this.curNode = {
+                    item: {}
+                };
+                this.curNode = data;
+                this.loadTableData();
+              //  this.ajaxParams.params.id
+              this.ajaxParams.params.name='';
+        
+            },
+            refreshFileTree() {
+                // this.curNode = {
+                //     item: {}
+                // };
+                // this.$refs.fileTree.refresh();
+                // this.$refs.table.reload();
+                this.page.pageNumber = 1;
+                this.page.pageSize = 10;
+                this.$refs.fileTree.refresh();
+            },
+
+            //上传成功后的回调
+            handleSuccess(response, file, fileList) {
+                alert("上传成功！");
+                this.$refs.fileTree.refresh();
+                this.$refs.table.reload();
+            },
+            //上传错误
+            handleError(response, file, fileList) {
+                alert("上传失败！");
+            },
+            //点击事件
+            handlePreview(file) {
+                console.log(file);
+            },
+            beforeRemove(file, fileList) {
+                return this.$confirm(`确定移除${file.name}？`);
+            },
+            handleRemove(file, fileList) {
+                console.log(file, fileList);
+            },
+
+            created() {
+               this.loadTableData();
+               //sys_form_type展开列表（问题）
+        },
+            //当showCheck为true时，勾选行时的回调事件，入参：勾选后的值
+            onCheck(checks) {
+                console.log(checks);
+            },
+             //新增方法回调
+              
+             addFunc() {
+                 this.$open({
+                     title: "新增文件柜",
+                     width: "10rem",
+                     confirmText:"保存",
+                     closeText:"取消",
+                     component: formComponent,
+                     props: {
+                        unitId:this.ajaxParams.params.unitId,
+                        name:this.ajaxParams.params.name
+                     },
+                     confirm: () => {
+                         this.$refs.table.reload();
+                         this.$refs.fileTree.refresh();
+                     }
+                 });
+             },
+            
+            //修改方法回调
+            editRow(row, index) {
+                this.$open({
+                    title: "修改文件柜",
+                    width: "10rem",
+                    confirmText:"保存",
+                    closeText:"取消",
+                    component: formComponent,
+                    props: {
+                        id: row.id,
+                    },
+                    confirm: () => {
+                         this.$refs.table.reload();
+                         this.$refs.fileTree.refresh();
+                    }
+                });
+            },
+            //删除方法回调
+            deleteRow(row, index) {
+                this.$confirm("是否删除?", "提示", {
+                    confirmButtonText: "确定",
+                    cancelButtonText: "取消",
+                    type: "warning"
+                }).then(() => {
+                    Ajax.delete("/system/FilingCabinet/delete", {
+                        id: row.id
+                    }).then(res => {
+                        this.$message.success("删除成功");
+                        this.$refs.table.reload();
+                        this.$refs.fileTree.refresh();
+                    });
+                });
+            },
+            /************根据代码生成所写的批量删除，后台有批量删除 */
+            /** 
+            //批量删除
+            deleteRows(row,index) {
+                this.$confirm("确定删除这些？？","提示", {
+                   confirmButtonText: "确定",
+                   cancelButtonText: "取消",
+                   type: "warning" 
+                }).then(() => {
+                    Ajax.delete("/system/FilingCabinet/deleteByIds", {
+                        id:row.id
+                    }).then(res => {
+                        this.$message.success("删除成功");
+                        this.$refs.table.reload();
+                        this.$refs.fileTree.refresh();  
+                    });
+                })
+            }
+            */
+
+        }
+    };
+</script>
+
+<style lang='scss' scoped>
+.el-header-adjust{
+    padding: 0;
+    box-sizing: border-box;
+    .el-form{
+        .toolbar{
+            padding: 0 20px;
+            height: 60px;
+            box-sizing: border-box;
+            div{
+                padding-top: 5px;
+                box-sizing: border-box;
+            }
+        }
+        .el-divider{
+            margin: 0;
+        }
+    }
+}
+</style>

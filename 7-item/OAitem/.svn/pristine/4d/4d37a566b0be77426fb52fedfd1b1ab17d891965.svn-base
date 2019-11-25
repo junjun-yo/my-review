@@ -1,0 +1,169 @@
+<template>
+  <div class="flow-design-config">
+    <el-form ref="form" :model="data.config" label-width="80px" :rules="rules">
+      <el-tabs v-model="activeTab" stretch>
+        <el-tab-pane label="流程属性" name="flowConfig">
+          <!-- 流程配置信息 -->
+          <el-form-item label="流程标识" prop="flowKey">
+            <el-input v-model="data.config.flowKey" :disabled="true"></el-input>
+          </el-form-item>
+          <el-form-item label="流程名称" prop="flowName">
+            <el-input v-model="data.config.flowName"></el-input>
+          </el-form-item>
+          <el-form-item label="流程类型" prop="flowType">
+            <oa-select code="flowType" v-model="data.config.flowType" />
+          </el-form-item>
+          <el-form-item label="流程表单" prop="formId">
+            <oa-select
+              v-model="data.config.formId"
+              placeholder="请选择流程表单"
+              :options="optForm"
+              optKey="id"
+              optValue="id"
+              optLabel="name"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="所属分类">
+            <oa-select
+              v-model="data.config.subTypeId"
+              placeholder="请选择所属分类"
+              :options="optFlowSubType"
+              optKey="id"
+              optValue="id"
+              optLabel="name"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="流程图标">
+            <icon-select v-model="data.config.flowIcon" placeholder="请选择流程图标" />
+          </el-form-item>
+          <el-form-item label="流程备注">
+            <el-input
+              type="textarea"
+              v-model="data.config.documentation"
+              placeholder="流程备注说明"
+              autosize
+            />
+          </el-form-item>
+          <el-form-item label="意见排序">
+            <oa-select
+              v-model="data.config.approvalSort"
+              placeholder="请选择意见排序"
+              :options="optApprovalSort"
+            />
+          </el-form-item>
+        </el-tab-pane>
+        <el-tab-pane label="节点属性" name="nodeConfig">
+          <template v-if="selectNode.type">
+            <component :is="selectNode.type + '_properties'" :selectNode="selectNode"></component>
+          </template>
+          <template v-else>当前未选择节点</template>
+        </el-tab-pane>
+      </el-tabs>
+    </el-form>
+  </div>
+</template>
+
+<script>
+import iconSelect from "@/components/IconSelect";
+let configs = {};
+const components = require.context("./properties", true, /\.vue$/);
+components.keys().forEach((key, i) => {
+  const value = components(key);
+  const type = key.replace(".vue", "").replace("./", "");
+  configs[type + "_properties"] = value.default;
+});
+
+export default {
+  props: {
+    data: Object,
+    selectNode: Object
+  },
+  components: {
+    ...configs,
+    iconSelect
+  },
+  computed: {
+    activeTab: {
+      get() {
+        if (Object.keys(this.selectNode).length == 0) {
+          return "flowConfig";
+        } else {
+          return "nodeConfig";
+        }
+      },
+      set() {}
+    }
+  },
+  data() {
+    return {
+      rules: {
+        flowKey: [{ required: true, message: "请输入流程ID", trigger: "blur" }],
+        flowName: [
+          { required: true, message: "请输入流程名称", trigger: "blur" }
+        ],
+        flowType: [
+          { required: true, message: "请选择流程类型", trigger: "blur" }
+        ],
+        formId: [{ required: true, message: "请选择流程表单", trigger: "blur" }]
+      },
+      optFlowSubType: [],
+      optForm: [],
+      optApprovalSort: [
+        { label: "用户升序", value: "USER_ASC" },
+        { label: "用户降序", value: "USER_DESC" },
+        { label: "时间升序", value: "TIME_ASC" },
+        { label: "时间降序", value: "TIME_DESC" }
+      ]
+    };
+  },
+  watch: {
+    "data.config.flowType"() {
+      this.loadSubType(true);
+      this.loadForm(true);
+    }
+  },
+  methods: {
+    loadSubType(clear) {
+      if (clear) {
+        this.data.config.subTypeId = "";
+      }
+      Ajax.post("/flow/subType/list", {
+        flowType: this.data.config.flowType
+      }).then(res => {
+        this.optFlowSubType = res.data;
+      });
+    },
+    loadForm(clear) {
+      if (clear) {
+        this.data.config.formId = "";
+      }
+      Ajax.post("/common/form/list", {
+        flowType: this.data.config.flowType
+      }).then(res => {
+        this.optForm = res.data;
+      });
+    },
+    validate() {
+      let res = false;
+      this.$refs.form.validate(valid => {
+        res = valid;
+      });
+      return res;
+    }
+  },
+  created() {
+    this.loadSubType(false);
+    this.loadForm(false);
+  }
+};
+</script>
+
+<style lang='scss' >
+.flow-design-config {
+  .el-tabs__content {
+    margin-top: 20px;
+  }
+}
+</style>

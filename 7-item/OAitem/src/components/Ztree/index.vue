@@ -1,0 +1,412 @@
+<template>
+  <div class="z-tree">
+    <div style="text-align:center;margin:5px 0;">
+      <el-input
+        style="width:95%;"
+        size="mini"
+        v-model="searchWord"
+        clearable
+        :placeholder="'请输入'+(this.title||'')+'名称'"
+        @input="search"
+      ></el-input>
+    </div>
+    <div style="height:calc(100% - 33px);overflow:auto;" v-loading="treeLoading">
+      <ul :id="key" class="ztree"></ul>
+    </div>
+    <div :id="rMenuKey" class="rightMenu">
+      <ul>
+        <li
+          v-for="item in rightMenus"
+          @click="handleRightMenuClick(item)"
+          v-show="item.type.indexOf(curRightType) != -1"
+        >{{item.title}}</li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script>
+import "./js/jquery-3.4.1.min.js";
+import "./js/jquery.ztree.core.min.js";
+import "./js/jquery.ztree.excheck.min.js";
+import "./js/jquery.ztree.exhide.min.js";
+
+export default {
+  props: {
+    title: {
+      type: String,
+      default: "标题"
+    },
+    url: String,
+    params: Object,
+    treeData: Array,
+    noClickType: Object,
+    setting: {
+      type: Object,
+      default: () => {
+        return {
+          data: {
+            simpleData: {
+              enable: true,
+              idKey: "id",
+              pIdKey: "pId",
+              rootPId: 0
+            }
+          }
+        };
+      }
+    },
+    rightClick: Array,
+    allowCheckCount: Number,
+    disableClick: Boolean,
+    multiple: Boolean,
+    defaultCheck: [String, Array],
+    noDefaultSelect: Boolean,
+    cascade: {
+      type: Object,
+      default: () => {
+        return { Y: "", N: "" };
+      }
+    }
+  },
+  watch: {
+    treeData: {
+      deep: true,
+      handler() {
+        if (!this.url) {
+          this.data = JSON.parse(JSON.stringify(this.treeData));
+          this.initTree();
+        }
+      }
+    }
+  },
+  data() {
+    return {
+      data: [],
+      searchWord: "",
+      treeLoading: false,
+      key:
+        "vue-ztree-" +
+        new Date().getTime() +
+        ((Math.random() * 1000).toFixed(0) + ""),
+      rMenuKey:
+        "vue-ztree-rmenu-" +
+        new Date().getTime() +
+        ((Math.random() * 1000).toFixed(0) + ""),
+      rMenu: null,
+      rightMenus: [],
+      curRightType: "",
+      instance: null
+    };
+  },
+  methods: {
+    initTree() {
+      this.setting = Object.assign(this.setting, {
+        view: {
+          selectedMulti: false,
+          fontCss: (treeId, treeNode) => {
+            return !!treeNode.highlight
+              ? { color: "red", "font-weight": "bold" }
+              : { color: "#333", "font-weight": "normal" };
+          }
+        },
+        callback: {
+          onClick: (event, treeId, treeNode) => {
+            this.$emit("click", treeNode, treeId, event);
+          },
+          beforeRightClick: () => {
+            if (this.rightClick && this.rightClick.length > 0) {
+              return true;
+            } else {
+              return false;
+            }
+          },
+          onRightClick: (event, treeId, treeNode) => {
+            if (
+              (!treeNode &&
+                event.target.tagName.toLowerCase() != "button" &&
+                $(event.target).parents("a").length == 0) ||
+              event.target.tagName.toLowerCase() == "ul"
+            ) {
+              return;
+            } else if (treeNode.getParentNode() == null) {
+              // this.instance.selectNode(treeNode);
+              this.curRightType = "root";
+              const shows = this.rightClick.filter(item => {
+                return item.type.indexOf("root") != -1;
+              });
+              if (shows.length > 0) {
+                this.showRMenu(event.clientX, event.clientY);
+              }
+            } else if (treeNode && !treeNode.noR) {
+              // this.instance.selectNode(treeNode);
+              this.curRightType = "node";
+              this.showRMenu(event.clientX, event.clientY);
+            }
+
+            const [...rightMenus] = this.rightClick;
+            rightMenus.forEach(item => {
+              item.data = treeNode;
+            });
+            this.rightMenus = rightMenus;
+          },
+          beforeClick: (treeId, treeNode, clickFlag) => {
+            let flag = false;
+            if (this.noClickType && Object.keys(this.noClickType).length > 0) {
+              Object.keys(this.noClickType).map(key => {
+                let d = this.noClickType[key];
+                if (treeNode.item[key] == d) {
+                  flag = true;
+                }
+              });
+            }
+
+            if (flag) {
+              return false;
+            }
+            if (treeNode.nocheck) {
+              return false;
+            } else {
+              return !this.disableClick;
+            }
+          },
+          beforeCheck: (treeId, treeNode) => {
+            let checks = this.instance.getCheckedNodes(true);
+            if (treeNode.checked) {
+              return true;
+            }
+            if (
+              this.allowCheckCount &&
+              checks.length >= this.allowCheckCount &&
+              checks.length > 0
+            ) {
+              let firstNode = checks[0];
+              this.instance.checkNode(firstNode);
+            }
+          },
+          onCheck: (event, treeId, treeNode) => {
+            let checks = this.instance.getCheckedNodes(true);
+            checks = checks.filter(item => {
+              return !!item.canSelect;
+            });
+            this.$emit("check", checks, treeId, event);
+          }
+        }
+      });
+
+      this.setting = Object.assign(this.setting, {
+        check: {
+          enable: this.multiple,
+          chkStyle: "checkbox",
+          chkboxType: this.cascade
+        }
+      });
+
+      this.instance = $.fn.zTree.init(
+        $("#" + this.key),
+        this.setting,
+        this.data
+      );
+    },
+    select(key, value) {
+      this.$nextTick(() => {
+        this.instance.selectNode(this.instance.getNodeByParam(key, value));
+        let node = this.instance.getNodeByParam(key, value);
+        this.$emit("click", node);
+      });
+    },
+    search() {
+      if (this.serachNodeList && this.serachNodeList.length > 0) {
+        this.updateSearchNodes(false);
+      }
+      if ($.trim(this.searchWord)) {
+        this.instance.showNodes(this.instance.getNodes());
+        this.serachNodeList = this.instance.getNodesByParamFuzzy(
+          "name",
+          this.searchWord
+        );
+        if (this.serachNodeList && this.serachNodeList.length > 0) {
+          this.updateSearchNodes(true);
+          let showNodes = [];
+          let showParentNode = node => {
+            showNodes.push(node);
+            let parentNode = node.getParentNode();
+            if (parentNode) {
+              showParentNode(parentNode);
+            }
+          };
+          this.serachNodeList.forEach(element => {
+            showParentNode(element);
+          });
+          let arr = [];
+          showNodes.forEach(element => {
+            let flag = false;
+            for (let index = 0; index < arr.length; index++) {
+              const mono = arr[index];
+              if (mono.id == element.id) {
+                flag = true;
+              }
+            }
+            if (!flag) {
+              arr.push(element);
+            }
+          });
+
+          let findNode = node => {
+            let flag = false;
+            for (let index = 0; index < arr.length; index++) {
+              const element = arr[index];
+              if (element.id == node.id) {
+                flag = true;
+              }
+            }
+            return flag;
+          };
+          let rootNodes = this.instance.getNodes();
+          let allNodes = this.instance.transformToArray(rootNodes);
+          for (let index = 0; index < allNodes.length; index++) {
+            const item = allNodes[index];
+            if (!findNode(item)) {
+              this.instance.hideNode(item);
+            }
+          }
+        } else {
+          this.instance.hideNodes(this.instance.getNodes());
+        }
+      } else {
+        let allHiddenNodes = this.instance.getNodesByParam("isHidden", true);
+        this.instance.showNodes(allHiddenNodes);
+      }
+    },
+    loadingTreeByAjax() {
+      this.treeLoading = true;
+      Ajax.post(this.url, this.params || {}).then(res => {
+        this.treeLoading = false;
+        if (res.data) {
+          this.data = res.data;
+          this.initTree();
+          if (this.disableClick !== true && this.noDefaultSelect !== true) {
+              //默认选中第一个可以被点击的树节点
+              let allNodes = this.instance.transformToArray(this.instance.getNodes());
+              for (let index = 0; index < allNodes.length; index++) {
+                  const item = allNodes[index];
+                  if (!item.nocheck) {
+                      this.select("id", item.id);
+                      return true;
+                  }
+              }
+          }
+          if (this.defaultCheck) {
+            if (this.defaultCheck.constructor == String) {
+              let checked = this.instance.getNodeByParam(
+                "id",
+                this.defaultCheck
+              );
+              this.instance.checkNode(checked);
+              this.$emit("check", this.instance.getCheckedNodes(true));
+            } else if (this.defaultCheck.constructor == Array) {
+              this.defaultCheck.forEach(id => {
+                let checked = this.instance.getNodeByParam("id", id);
+                this.instance.checkNode(checked);
+              });
+              this.$emit("check", this.instance.getCheckedNodes(true));
+            }
+          }
+        }
+      });
+    },
+    updateSearchNodes(flag) {
+      for (var i = 0, l = this.serachNodeList.length; i < l; i++) {
+        this.serachNodeList[i].highlight = flag;
+        this.instance.updateNode(this.serachNodeList[i]);
+      }
+    },
+    handleRightMenuClick(item) {
+      item.callback && item.callback(item.data);
+      this.hideRMenu();
+    },
+    showRMenu(x, y) {
+      $("#" + this.rMenuKey + " ul").show();
+      y += document.body.scrollTop;
+      x += document.body.scrollLeft;
+      this.rMenu.css({ top: y + "px", left: x + "px", visibility: "visible" });
+
+      $("body").bind("mousedown", this.onBodyMouseDown);
+    },
+    hideRMenu() {
+      if (this.rMenu) this.rMenu.css({ visibility: "hidden" });
+      $("body").unbind("mousedown", this.onBodyMouseDown);
+    },
+    onBodyMouseDown(event) {
+      if (
+        !(
+          event.target.id == this.rMenuKey ||
+          $(event.target).parents("#" + this.rMenuKey).length > 0
+        )
+      ) {
+        this.rMenu.css({ visibility: "hidden" });
+      }
+    },
+    refresh() {
+      if (this.url) {
+        this.loadingTreeByAjax();
+      }
+    }
+  },
+  mounted() {
+    if (this.url) {
+      this.loadingTreeByAjax();
+    } else {
+      this.data = JSON.parse(JSON.stringify(this.treeData));
+      this.initTree();
+    }
+    this.rMenu = $("#" + this.rMenuKey);
+  }
+};
+</script>
+
+<style lang='scss' scoped>
+@import "./css/zTreeStyle/zTreeStyle.css";
+.z-tree {
+  height: 100%;
+  .rightMenu {
+    position: fixed;
+    visibility: hidden;
+    top: 0;
+    width: 140px;
+    padding: 2px;
+    background: white;
+    color: #201f35;
+    box-shadow: 0px 5px 32px 0px rgba(81, 79, 79, 0.25);
+    font-size: 9pt;
+    border-collapse: collapse;
+    border-collapse: separate;
+    overflow: hidden;
+    border-radius: 4px;
+    ul {
+      margin: 0;
+      padding: 0;
+    }
+    li {
+      text-align: left;
+      margin: 0;
+      list-style: none;
+      margin: 0;
+      cursor: pointer;
+      padding-right: 12px;
+      padding-left: 10px;
+      list-style: none;
+      line-height: 30px;
+      font-size: 14px;
+      color: #444;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      word-break: keep-all;
+      overflow: hidden;
+      &:hover {
+        background-color: #dfdfdf;
+      }
+    }
+  }
+}
+</style>

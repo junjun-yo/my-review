@@ -1,0 +1,5 @@
+// Array.from(document.querySelectorAll("div[class='code-name']")).filter(item=>item.innerText.indexOf('&#') == -1).filter(item=>item.innerText.indexOf('#') == -1).map(item=>item.innerText).join(',')
+let customIcons = ["el-icon-yanfa", "el-icon-xiaoshoubaobiao", "el-icon-yewu", "el-icon-xiaoshouguanli", "el-icon-caiwu", "el-icon-tagslc", "el-icon-dyjksqlc", "el-icon-wlfwcgsplc", "el-icon-yfxmjdsplc", "el-icon-jhwwlcgblsqlc", "el-icon-ydpxjhtjlc", "el-icon-scsqlc", "el-icon-yfwxsysqlc", "el-icon-ECNDCN", "el-icon-kkxsysqlc", "el-icon-shbljhsqlc", "el-icon-rlzyfwyzsqlc", "el-icon-wlgysxzpslc", "el-icon-djhfbsqlc", "el-icon-jjkdxxggsqlc", "el-icon-wwddjgsplc", "el-icon-xwlcgbjsqlc-dl", "el-icon-djhbgsqlc", "el-icon-wjpxqrlc", "el-icon-wlgystcpslc", "el-icon-wjwbcywfsqlc", "el-icon-pxzltjlc", "el-icon-yqxylc", "el-icon-xwlcgbjsqlc", "el-icon-cgbjgxsqlc", "el-icon-lcicon", "el-icon-kddfsqlc"];
+
+
+export default customIcons

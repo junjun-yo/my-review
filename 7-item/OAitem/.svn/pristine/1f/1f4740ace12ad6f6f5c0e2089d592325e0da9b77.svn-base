@@ -1,0 +1,192 @@
+<template>
+    <oa-table
+            :ajax="ajaxParams"
+            :columns="columns"
+            showToolbar
+            showCheck
+            showPage
+            @check="onCheck"
+            :add="addFunc" ref="table"
+            :sort="['groupName','description','sortNo']">
+        <template slot-scope="{queryForm}" slot="more">
+             <el-form-item label="用户组名称">
+                <el-input v-model="queryForm.groupName" placeholder="请输入用户组名称"></el-input>
+             </el-form-item>
+        </template>
+    </oa-table>
+</template>
+
+<script>
+    import formComponent from "./component/form";
+    export default {
+        data() {
+            return {
+                userList:[],
+                //表格异步请求数据参数
+                ajaxParams: {
+                    url: "/system/CommonUserGroup/page",
+                    method: "post",
+                    params: {
+                        userId:this.$route.params.userId,
+                        unitId:this.$route.params.unitId
+                    }
+                },
+                //列头属性配置
+                columns: [
+                    {
+                        label: "用户组名称",
+                        prop: "groupName",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.groupName;
+                        }
+                    },
+                    {
+                        label: "描述",
+                        prop: "description",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.description;
+                        }
+                    },
+                    {
+                        label: "排序码",
+                        prop: "sortNo",
+                        align: "",
+                        width: "",
+                        fmt(row){
+                            return row.sortNo;
+                        }
+                    },
+                    {
+                        label: "操作",
+                        align: "center",
+                        //单元格自定义渲染操作
+                        opts: [
+                            {
+                                title:"编辑人员",
+                                click:this.editPerson
+                            },
+                            {
+                                //按钮名称
+                                title: "修改",
+                                //回调事件，入参：（1：行数据，2：行角标）
+                                click: this.editRow
+                            },
+                            {
+                                title: "删除",
+                                click: this.deleteRow
+                            }
+                        ]
+                    }
+                ],
+                userId:"",
+                unitId:""
+            };
+        },
+        methods: {
+            //当showCheck为true时，勾选行时的回调事件，入参：勾选后的值
+            onCheck(checks) {
+                console.log(checks);
+            },
+            loadDataTable(){
+                console.log("userId:"+this.userId);
+                console.log("unitId:"+this.unitId);
+                Ajax.post("/system/CommonUserGroup/page",{
+                    userId:this.userId,
+                    unitId:this.unitId
+                }).then(res=>{
+                    console.log(111111)
+                })
+                //todo
+                //页面加载时在created方法中调用,判断userId和unitId，若userId ！= null 展示单位和个人用户组数据
+                //若unitId !=null 展示单位用户组数据
+            },
+            //新增方法回调
+            addFunc() {
+                this.$open({
+                    title: "新增用户组",
+                    width: "10rem",
+                    confirmText:"保存",
+                    closeText:"取消",
+                    props:{
+                        userId:this.userId,
+                        unitId:this.unitId
+                    },
+                    component: formComponent,
+                    confirm: () => {
+                        this.$refs.table.reload();
+                    }
+                });
+            },
+            //分配人员
+            editPerson(row){
+                Ajax.get("/system/CommonUserGroup/get",{
+                    id:row.id
+                },"json").then(res=>{
+                   this.$openUserSelect({
+                       defaultCheck:res.data,
+                       confirm:data=>{
+                           Ajax.put("/system/CommonUserGroup/saveCommonUserInfo",{
+                                groupId:row.id,
+                                userIds:data.join(",")
+                           }).then(res=>{
+                               this.$message({
+                                   message:"人员分配成功",
+                                   type:"success"
+                               });
+                           });
+                       }
+                   })
+                })
+            },
+            //修改方法回调
+            editRow(row, index) {
+                this.$open({
+                    title: "修改用户组",
+                    width: "10rem",
+                    confirmText:"保存",
+                    closeText:"取消",
+                    component: formComponent,
+                    props: {
+                        id: row.id
+                    },
+                    confirm: () => {
+                        this.$refs.table.reload();
+                    }
+                });
+            },
+            //删除方法回调
+            deleteRow(row, index) {
+                this.$confirm("是否删除?", "提示", {
+                    confirmButtonText: "确定",
+                    cancelButtonText: "取消",
+                    type: "warning"
+                }).then(() => {
+                    Ajax.delete("/system/CommonUserGroup/delete", {
+                        id: row.id
+                    }).then(res => {
+                        this.$message.success("删除成功");
+                        this.$refs.table.reload();
+                    });
+                });
+            }
+        },
+        created() {
+            //设置参数
+            if(this.$route.params.userId!=null){
+                this.unitId="";
+                this.userId=this.$store.state.account.sysUser.userId;
+            }else if(this.$route.params.unitId!=null){
+                this.userId="";
+                this.unitId=this.$store.state.account.sysUser.unitId;
+            }
+            this.loadDataTable();
+        }
+    };
+</script>
+
+<style lang='scss' scoped>
+</style>

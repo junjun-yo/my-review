@@ -1,0 +1,53 @@
+<template>
+    <div>
+        <el-button type="primary" style="margin-top: 10px;margin-left: 20px;" @click="deleteDir">删除</el-button>
+        <el-divider></el-divider>
+        <ul>
+            <li style="margin-left: 10px" v-for="dir in dirList"  :key="dir">
+                <div style="width: 100px;float: left">
+                    <span class="el-icon-folder" style="font-size: 5em;color:#FFE6B0;display: block"></span>
+                    <router-link style="font-size:1em;text-align: center" :to="{path:'/mailbox/my_dir/dirInfo',query:{dirName:dir.dirName}}">{{dir.dirName}}</router-link>
+                </div>
+            </li>
+        </ul>
+    </div>
+</template>
+
+<script>
+    import deleteList from "./component/deleteList";
+
+    export default {
+        data(){
+            return {
+                dirList:[]
+            }
+        },
+        methods:{
+            deleteDir(){
+                    this.$open({
+                        title: "删除文件夹",
+                        component: deleteList,
+                        width: "800px",
+                        props: {
+                            receiverId: this.$store.state.account.sysUser.id
+                        },
+                        confirm: () => {
+                            this.loadDirData();
+                        }
+                    });
+            },
+            loadDirData(){
+                Ajax.post("/maildir/dirNameList",{receiverId:this.$store.state.account.sysUser.id}).then(res =>{
+                    this.dirList = res.data;
+                })
+            }
+        },
+        created() {
+            this.loadDirData();
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,73 @@
+<template>
+  <el-input placeholder="请选择菜单" v-model="choose" readonly>
+    <el-button slot="append" icon="el-icon-search" @click="$ztreeSelect"></el-button>
+  </el-input>
+</template>
+
+<script>
+import dialog from "./module-select-dialog";
+export default {
+  props: {
+    value: [String, Array],
+    allowCheckCount: Number,
+    cascade: Object
+  },
+  watch: {
+    async value() {
+      this.transform();
+    }
+  },
+  data() {
+    return {
+      choose: ""
+    };
+  },
+  methods: {
+    $ztreeSelect() {
+      this.$open({
+        title: "菜单选择",
+        component: dialog,
+        width: "500px",
+        props: {
+          allowCheckCount: this.allowCheckCount,
+          cascade: this.cascade,
+          defaultCheck: this.value
+        },
+        confirm: data => {
+          if (this.allowCheckCount == 1) {
+            this.choose = data[0].name;
+            this.$emit("input", data[0].id);
+          } else {
+            this.choose = data.map(item => item.name).join(",");
+            this.$emit("input", data.map(item => item.id));
+          }
+          this.$emit("confirm", data);
+        }
+      });
+    },
+    async transform() {
+      if (this.value) {
+        if (this.value.constructor == String) {
+          const res = await Ajax.post("common/cacheData/searchNameForDept", {
+            id: this.value
+          });
+          this.choose = res.data;
+        } else {
+          const res = await Ajax.post("common/cacheData/searchNameForDept", {
+            id: this.value.join(",")
+          });
+          this.choose = res.data;
+        }
+      } else {
+        this.choose = "";
+      }
+    }
+  },
+  created() {
+    this.transform();
+  }
+};
+</script>
+
+<style lang='scss' scoped>
+</style>

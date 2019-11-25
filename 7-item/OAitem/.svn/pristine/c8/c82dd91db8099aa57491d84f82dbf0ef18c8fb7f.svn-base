@@ -1,0 +1,208 @@
+<template>
+    <div>
+        <div style="margin:20px auto 10px 10px">
+            <el-dropdown style="margin-left: 10px">
+                <el-button type="primary">
+                    标记为<i class="el-icon-arrow-down el-icon--right"></i>
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="setFileType(1)">已读</el-dropdown-item>
+                    <el-dropdown-item @click.native="setFileType(0)">未读</el-dropdown-item>
+                    <el-dropdown-item @click.native="setFlagStar(1)">星标</el-dropdown-item>
+                    <el-dropdown-item @click.native="setFlagStar(0)">取消星标</el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+
+            <el-dropdown style="margin-left: 10px">
+                <el-button type="primary">
+                    导出<i class="el-icon-arrow-down el-icon--right"></i>
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="downloadAll">全部</el-dropdown-item>
+                    <el-dropdown-item @click.native="downloadExcel">指定数据</el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+        </div>
+        <div>
+            <oa-table :ajax="ajaxParams" :columns="columns"  showCheck showPage
+                      @check="onCheck"  ref="table"
+                      :sort="['senderId']">
+                <template slot-scope="{queryForm}" slot="more">
+                </template>
+                <template slot-scope="{row,col}" slot="render">
+                    <div v-if="col.prop=='title'">
+                        <el-link v-if="row.title!=''||row.title!=undefined" @click="openMail(row)">{{row.title}}</el-link>
+                    </div>
+                    <div v-if="col.prop=='fileType'">
+                        <li v-if="row.fileType==1"
+                            @click="openMail(row)"
+                            class="el-icon-postcard"
+                            style="font-size: 25px;color:#F7BA2A;cursor: pointer;"
+                        ></li>
+                        <li v-if="row.fileType==0"
+                            @click="openMail(row)"
+                            class="el-icon-message"
+                            style="font-size:25px;color:#F7BA2A;cursor: pointer;"
+                        ></li>
+                    </div>
+                    <div v-if="col.prop=='flagStar'">
+                        <i  v-if="row.flagStar == '1'"
+                            @click="setFlagStarRow(row)"
+                            class="el-icon-star-on"
+                            style="font-size:25px;color:#F7BA2A"
+                        ></i>
+                        <i  v-if="row.flagStar=='0'"
+                            @click="setFlagStarRow(row)"
+                            class="el-icon-star-off"
+                            style="font-size:20px;"
+                        ></i>
+                    </div>
+                </template>
+
+
+            </oa-table>
+        </div>
+    </div>
+</template>
+
+<script>
+    export default {
+        data(){
+            return {
+                //表格异步请求数据参数
+                ajaxParams: {
+                    url: "/mailbox/flagStarList",
+                    method: "post",
+                    params: {
+                        receiverId:this.$store.state.account.sysUser.id
+                    }
+                },
+                //列头属性配置
+                columns: [
+                    {
+                        label: "文件状态",
+                        prop: "fileType",
+                        align: "center",
+                        width: "",
+                        render:true
+                    },
+                    {
+                        label: "文件标题",
+                        prop: "title",
+                        align: "center",
+                        width: "",
+                        render:true
+                    },
+                    {
+                        label: "发送者",
+                        prop: "username",
+                        align: "center",
+                        width: "",
+                        fmt(row){
+                            return row.username;
+                        }
+                    },
+                    {
+                        label: "接收者",
+                        prop: "receiverName",
+                        align: "center",
+                        width: "",
+                        fmt(row){
+                            return row.receiverName;
+                        }
+                    },
+                    {
+                        label: "时间",
+                        prop: "createDate",
+                        align: "center",
+                        width: "",
+                        fmt: row => {
+                            return this.$options.filters["date"](row.createDate, "yyyy-MM-dd");
+                        }
+                    },
+                    {
+                        label: "星标",
+                        prop: "flagStar",
+                        align: "center",
+                        width: "",
+                        render:true
+                    }
+                ],
+                checks:[]
+            }
+        },
+        methods:{
+            onCheck(checks) {
+                this.checks=checks;
+            },
+            openMail(row){
+                this.$router.push({path:'/mailbox/open_mail',query:{mail:row}});
+                row.fileType = "1";
+                Ajax.put("/mailbox/setFileType",
+                    [row]
+                    ,"json").then(res => {
+                    this.$refs.table.reload();
+                });
+            },
+            //设置邮件状态
+            setFileType(data){
+                for(let i=0;i<this.checks.length;i++){
+                    this.checks[i].fileType = data;
+                }
+                Ajax.put("/mailbox/setFileType",
+                    this.checks
+                    ,"json").then(res => {
+                    this.$message({
+                        type:"success",
+                        message:"操作成功"
+                    });
+                    this.$refs.table.reload();
+                });
+            },
+            //设置星标
+            setFlagStar(data){
+                for(let i=0;i<this.checks.length;i++){
+                    this.checks[i].flagStar = data;
+                }
+                Ajax.put("/mailbox/setFlagStar",this.checks,"json").
+                then(()=>{
+                    this.$refs.table.reload();
+                });
+            },
+            setFlagStarRow(row){
+                row.flagStar = (row.flagStar == "1")?"0":"1";
+                Ajax.put("/mailbox/updateMailInfo",[row],"json").
+                then(()=>{
+                    this.$refs.table.reload();
+                });
+            },
+            downloadAll(){
+                Ajax.get("/mailbox/sentList",{
+                    sendType:"1",
+                    senderId:this.$store.state.account.sysUser.id
+                },"json").then(res =>{
+                    Ajax.put("/mailbox/downloadExcel",res.data,"json").then(()=>{
+                        this.$message({
+                            message:"成功",
+                            type:"success"
+                        });
+                        this.$refs.table.reload();
+                    });
+                });
+            },
+            downloadExcel(){
+                Ajax.put("/mailbox/downloadExcel",this.checks,"json").then(()=>{
+                    this.$message({
+                        message:"成功",
+                        type:"success"
+                    });
+                    this.$refs.table.reload();
+                })
+            },
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,936 @@
+<template>
+  <el-container class="workflow-design">
+    <el-aside width="300px" class="tools-area">
+      <div class="tool-title">操作</div>
+      <div class="opts">
+        <el-radio-group v-model="opt" @change="changeOpt">
+          <el-radio-button label="drag">
+            <i class="el-icon-rank"></i>
+          </el-radio-button>
+          <el-radio-button label="connection">
+            <i class="el-icon-share"></i>
+          </el-radio-button>
+          <el-radio-button label="zoom-in">
+            <i class="el-icon-zoom-in"></i>
+          </el-radio-button>
+          <el-radio-button label="zoom-out">
+            <i class="el-icon-zoom-out"></i>
+          </el-radio-button>
+        </el-radio-group>
+      </div>
+      <div class="tool-title">基础节点</div>
+      <ul class="tools">
+        <li
+          class="item"
+          :style="opt == 'connection'?'cursor:not-allowed':'cursor:move'"
+          :id="node.type"
+          v-for="node in nodeTypes"
+          @dragstart="dragItem"
+          draggable="true"
+        >
+          <i :class="node.icon"></i>
+          {{node.name}}
+        </li>
+      </ul>
+      <div style="margin-top:30px">
+        <el-divider content-position="center">流程配置信息</el-divider>
+        <el-form ref="form" :model="data.config" label-width="80px" :rules="rules">
+          <!-- 流程配置信息 -->
+          <el-form-item label="流程标识" prop="flowKey">
+            <el-input v-model="data.config.flowKey" :disabled="true"></el-input>
+          </el-form-item>
+          <el-form-item label="流程名称" prop="flowName">
+            <el-input v-model="data.config.flowName"></el-input>
+          </el-form-item>
+          <el-form-item label="流程类型" prop="flowType">
+            <oa-select code="flowType" v-model="data.config.flowType" @change="flowTypeChange" />
+          </el-form-item>
+          <el-form-item label="流程表单" prop="formId">
+            <oa-select
+              v-model="data.config.formId"
+              placeholder="请选择流程表单"
+              :options="optForm"
+              optKey="id"
+              optValue="id"
+              optLabel="name"
+              clearable
+              @change="formIdChange"
+            />
+          </el-form-item>
+          <el-form-item label="所属分类">
+            <oa-select
+              v-model="data.config.subTypeId"
+              placeholder="请选择所属分类"
+              :options="optFlowSubType"
+              optKey="id"
+              optValue="id"
+              optLabel="name"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="流程图标">
+            <icon-select v-model="data.config.flowIcon" placeholder="请选择流程图标" />
+          </el-form-item>
+          <el-form-item label="流程备注">
+            <el-input
+              type="textarea"
+              v-model="data.config.documentation"
+              placeholder="流程备注说明"
+              autosize
+            />
+          </el-form-item>
+          <el-form-item label="意见排序">
+            <oa-select
+              v-model="data.config.approvalSort"
+              placeholder="请选择意见排序"
+              :options="optApprovalSort"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-aside>
+    <el-container>
+      <el-header class="flow-header" style="text-align:right">
+        <el-button type="primary" @click="clearAll">清除所有</el-button>
+        <el-button type="primary" @click="buildLayout">生成布局JSON</el-button>
+        <el-button type="primary" @click="importCode">导入布局JSON</el-button>
+      </el-header>
+      <el-main style="height: 100%;">
+        <div class="flow-main" @drop="dropItem" @dragover="e=>e.preventDefault()">
+          <div v-if="isShowXLine" class="auxiliary-line-x" :style="{ top: linePos.y + 'px' }"></div>
+          <div v-if="isShowYLine" class="auxiliary-line-y" :style="{ left: linePos.x + 'px' }"></div>
+
+          <div id="moveSelected" class="moveSelected"></div>
+          <div class="flow-container" id="container">
+            <template v-for="(node,index) in data.nodeList" v-if="data.nodeList.length > 0">
+              <div
+                :id="node.id"
+                :style="{top: node.top +'px',left: node.left + 'px',position: 'absolute'}"
+                :class="selectNode.id == node.id ? 'cur-node' :'no-cur-node' "
+                @click.stop="chooseNode(node)"
+                @contextmenu.stop.prevent="showExtendmenu(node,'node')"
+                @dblclick="nodeDbclick(node,index)"
+              >
+                <component :style="{cursor:optClass}" :is="node.type + '_'" :node="node" />
+              </div>
+            </template>
+          </div>
+          <div class="mouse-position">（X：{{mousePos.x}}，Y：{{mousePos.y}}）</div>
+        </div>
+      </el-main>
+    </el-container>
+    <!-- <el-aside width="300px" class="properties-panel">
+      <config-panel ref="configPanel" :selectNode="selectNode" :data="data" />
+    </el-aside>-->
+    <div class="rightMenu" ref="extendmenu">
+      <ul>
+        <li @click="removeTo">删除</li>
+      </ul>
+    </div>
+  </el-container>
+</template>
+
+<script>
+import "jsplumb";
+import iconSelect from "@/components/IconSelect";
+
+import {
+  version,
+  nodeTypes,
+  instanceConfig,
+  sourceOptions,
+  targetConfig,
+  connectConfig
+} from "./config";
+
+import configPanel from "./configs";
+
+import build from "./build";
+
+import { download } from "./util";
+
+import code from "./dialog/code";
+
+let configs = {};
+const components = require.context("./nodes", true, /\.vue$/);
+components.keys().forEach((key, i) => {
+  const value = components(key);
+  const type = key.replace(".vue", "").replace("./", "");
+  configs[type + "_"] = value.default;
+});
+
+let nodeConfigs = {};
+const configComponents = require.context(
+  "./configs/properties",
+  true,
+  /\.vue$/
+);
+configComponents.keys().forEach((key, i) => {
+  const value = configComponents(key);
+  const type = key.replace(".vue", "").replace("./", "");
+  nodeConfigs[type + "_properties"] = value.default;
+});
+
+export default {
+  props: {
+    value: {
+      type: Object,
+      default: () => {
+        return {};
+      }
+    }
+  },
+  watch: {
+    value: {
+      deep: true,
+      handler() {
+        this.loadFlow();
+      }
+    }
+  },
+  components: {
+    configPanel,
+    iconSelect,
+    ...configs
+  },
+  data() {
+    return {
+      //表单字段对象
+      formStructs: [],
+      //流程属性配置信息
+      rules: {
+        flowKey: [{ required: true, message: "请输入流程ID", trigger: "blur" }],
+        flowName: [
+          { required: true, message: "请输入流程名称", trigger: "blur" }
+        ],
+        flowType: [
+          { required: true, message: "请选择流程类型", trigger: "blur" }
+        ],
+        formId: [{ required: true, message: "请选择流程表单", trigger: "blur" }]
+      },
+      optFlowSubType: [],
+      optForm: [],
+      optApprovalSort: [
+        { label: "用户升序", value: "USER_ASC" },
+        { label: "用户降序", value: "USER_DESC" },
+        { label: "时间升序", value: "TIME_ASC" },
+        { label: "时间降序", value: "TIME_DESC" }
+      ],
+      //节点拖拽信息
+      version,
+      nodeTypes,
+      list: [],
+      opt: "drag",
+      optClass: "move",
+      moveNode: {},
+      data: {
+        config: {
+          flowKey: "",
+          flowName: "",
+          flowType: "",
+          subTypeId: "",
+          formId: "",
+          flowIcon: "",
+          documentation: "",
+          approvalSort: ""
+        },
+        nodeList: [],
+        lineList: []
+      },
+      jsPlumb: undefined,
+      selectNode: {},
+      rightNode: {},
+      isShowYLine: false,
+      isShowXLine: false,
+      mousePos: {
+        x: 0,
+        y: 0
+      },
+      linePos: {
+        x: 0,
+        y: 0
+      }
+    };
+  },
+  methods: {
+    flowTypeChange() {
+      this.loadSubType(true);
+      this.loadForm(true);
+    },
+    formIdChange(formId) {
+      this.getForm(formId);
+    },
+
+    loadSubType(clear) {
+      if (clear) {
+        this.data.config.subTypeId = "";
+      }
+      Ajax.post("/flow/subType/list", {
+        flowType: this.data.config.flowType
+      }).then(res => {
+        this.optFlowSubType = res.data;
+      });
+    },
+    loadForm(clear) {
+      if (clear) {
+        this.data.config.formId = "";
+      }
+      Ajax.post("/common/form/list", {
+        flowType: this.data.config.flowType
+      }).then(res => {
+        this.optForm = res.data;
+      });
+    },
+    getForm(formId) {
+      //选择表单后的字段缓存
+      Ajax.post("common/form/get", {
+        id: formId
+      }).then(res => {
+        if (res.data) {
+          const { structs } = res.data;
+          this.formStructs = structs;
+        }
+      });
+    },
+    validate() {
+      let res = false;
+      this.$refs.form.validate(valid => {
+        res = valid;
+      });
+      return res;
+    },
+    importCode() {
+      this.$open({
+        title: "导入布局",
+        width: "700px",
+        height: "500px",
+        component: code,
+        props: {
+          readonly: false
+        },
+        confirm: data => {
+          this.data = JSON.parse(data);
+          this.loadFlow();
+        }
+      });
+    },
+    buildLayout() {
+      this.$open({
+        title: "生成布局",
+        width: "700px",
+        height: "500px",
+        props: {
+          data: this.data
+        },
+        component: code
+      });
+    },
+    lineDbclick(line, index, conn) {
+      //line扩展初始化属性
+      line = {
+        ...line,
+        ...{}
+      };
+
+      //深拷贝数据，和原始数据脱离地址引用
+      let data = JSON.parse(JSON.stringify(line));
+      let lineConfigComponent = nodeConfigs[line.type + "_properties"];
+      let structs = this.formStructs
+        ? JSON.parse(JSON.stringify(this.formStructs))
+        : [];
+
+      this.$open({
+        // title: line.name,
+        title: "判定条件",
+        component: lineConfigComponent,
+        props: {
+          lineData: line,
+          structs: structs
+        },
+        confirm: config => {
+          //关联原始数据
+          this.$set(this.data.lineList, index, config);
+          console.log(conn);
+          conn.connection.getOverlay("line-label").setLabel(config.name);
+        }
+      });
+    },
+    nodeDbclick(node, index) {
+      //深拷贝数据，和原始数据脱离地址引用
+      let data = JSON.parse(JSON.stringify(node));
+      let nodeConfigComponent = nodeConfigs[node.type + "_properties"];
+      let structs = this.formStructs
+        ? JSON.parse(JSON.stringify(this.formStructs))
+        : [];
+
+      this.$open({
+        title: node.name,
+        component: nodeConfigComponent,
+        props: {
+          selectNode: data,
+          structs: structs
+        },
+        confirm: config => {
+          //关联原始数据
+          this.$set(this.data.nodeList, index, config);
+        }
+      });
+    },
+    $init() {
+      const that = this;
+      // document.oncontextmenu = function() {
+      //   return false;
+      // };
+      this.jsPlumb = jsPlumb.getInstance(instanceConfig);
+      this.jsPlumb.ready(() => {
+        //建立连接
+        this.jsPlumb.bind("connection", (conn, e) => {
+          let connObj = conn.connection.canvas;
+          let newLine = {
+            id:
+              "line-" +
+              new Date().getTime() +
+              ((Math.random() * 1000).toFixed(0) + ""),
+            type: "line",
+            sourceId: conn.sourceId,
+            targetId: conn.targetId,
+            name: ""
+          };
+
+          if (
+            this.data.lineList.findIndex(
+              line =>
+                line.sourceId == conn.sourceId && line.targetId == conn.targetId
+            ) == -1
+          ) {
+            this.data.lineList.push(newLine);
+          }
+
+          conn.connection.bind("contextmenu", (c, e) => {
+            e.preventDefault();
+            this.showExtendmenu(c, "line");
+          });
+
+          conn.connection.bind("dblclick", (c, originalEvent) => {
+            let lineIndx = this.data.lineList.findIndex(
+              line => line.sourceId == c.sourceId && line.targetId == c.targetId
+            );
+
+            let line = this.data.lineList.find((item, i) => {
+              return i === lineIndx;
+            });
+            this.lineDbclick(line, lineIndx, conn);
+          });
+        });
+
+        this.jsPlumb.importDefaults({
+          ConnectionsDetachable: false
+        });
+        this.loadFlow();
+      });
+
+      document.getElementById("container").addEventListener("click", e => {
+        this.selectNode = {};
+      });
+    },
+    //初始化流程图
+    loadFlow() {
+      this.data = { ...this.data, ...this.value };
+
+      if (!this.data.nodeList) {
+        this.data = {
+          ...this.data,
+          ...{
+            nodeList: []
+          }
+        };
+      }
+
+      if (!this.data.lineList) {
+        this.data = {
+          ...this.data,
+          ...{
+            lineList: []
+          }
+        };
+      }
+
+      const lineList = this.data.lineList;
+      if (lineList && lineList.length > 0) {
+        this.$nextTick(() => {
+          lineList.forEach((line, index) => {
+            let conn = this.jsPlumb.connect(
+              {
+                source: line.sourceId,
+                target: line.targetId
+              },
+              connectConfig
+            );
+            conn.getOverlay("line-label").setLabel(line.name);
+          });
+        });
+      }
+
+      const nodeList = this.data.nodeList;
+      if (nodeList && nodeList.length > 0) {
+        this.$nextTick(() => {
+          nodeList.forEach(node => {
+            this.jsPlumb.draggable(node.id, {
+              containment: true,
+              handle: function(e, el) {
+                return true;
+              },
+              grid: [5, 5],
+              drag: e => {
+                this.alignForLine(e);
+              },
+              stop: e => {
+                node.left = e.pos[0];
+                node.top = e.pos[1];
+                this.isShowYLine = false;
+                this.isShowXLine = false;
+              }
+            });
+          });
+        });
+      }
+      if (this.data.config.formId) {
+        this.getForm(this.data.config.formId);
+      }
+    },
+    changeOpt(opt) {
+      switch (opt) {
+        case "drag":
+          this.optClass = "move";
+          this.changeToDrag();
+          break;
+        case "connection":
+          this.optClass = "crosshair";
+          this.changeToConnection();
+          break;
+        default:
+          break;
+      }
+    },
+    changeToDrag() {
+      this.data.nodeList.forEach((node, index) => {
+        let f = this.jsPlumb.toggleDraggable(node.id);
+        if (!f) {
+          this.jsPlumb.toggleDraggable(node.id);
+        }
+        this.jsPlumb.unmakeSource(node.id);
+        this.jsPlumb.unmakeTarget(node.id);
+      });
+    },
+    changeToConnection() {
+      this.data.nodeList.forEach((node, index) => {
+        let f = this.jsPlumb.toggleDraggable(node.id);
+        if (f) {
+          this.jsPlumb.toggleDraggable(node.id);
+        }
+        this.jsPlumb.makeSource(node.id, sourceOptions);
+        this.jsPlumb.makeTarget(node.id, targetConfig);
+      });
+    },
+    chooseNode(node) {
+      this.selectNode = node;
+    },
+    dragItem(e) {
+      if (this.opt == "connection") {
+        e.preventDefault();
+      }
+      e.dataTransfer.setData("text", e.target.id);
+    },
+    dropItem(e) {
+      let sourceType = e.dataTransfer.getData("text");
+      let moveNode = this.nodeTypes.find(item => item.type == sourceType);
+
+      const index =
+        new Date().getTime() + ((Math.random() * 1000).toFixed(0) + "");
+      let nodeId = sourceType + "-" + index;
+
+      let left = e.layerX - moveNode.width / 2;
+      let top = e.layerY - moveNode.height / 2;
+
+      left = parseInt(left / 5) * 5;
+      top = parseInt(top / 5) * 5;
+
+      let node = {
+        id: nodeId,
+        left: left,
+        top: top
+      };
+
+      node = Object.assign({}, moveNode, node);
+      let nodeIndex = this.data.nodeList.length;
+      this.$set(this.data.nodeList, nodeIndex, node);
+
+      this.$nextTick(() => {
+        this.jsPlumb.draggable(nodeId, {
+          containment: true,
+          handle: function(e, el) {
+            return true;
+          },
+          grid: [5, 5],
+          drag: e => {
+            this.alignForLine(e);
+          },
+          stop: e => {
+            node.left = e.pos[0];
+            node.top = e.pos[1];
+            this.isShowYLine = false;
+            this.isShowXLine = false;
+          }
+        });
+      });
+    },
+    showExtendmenu(node, type) {
+      this.rightNode = {
+        type: type,
+        node: node
+      };
+      const menu = this.$refs.extendmenu;
+      menu.style.visibility = "visible";
+      menu.style.left = event.clientX + "px";
+      menu.style.top = event.clientY + "px";
+      document.getElementById("container").addEventListener("click", e => {
+        menu.style.visibility = "hidden";
+      });
+    },
+    removeTo() {
+      const node = this.rightNode;
+      let lineList = this.data.lineList;
+      let nodeList = this.data.nodeList;
+      if (node.type == "line") {
+        this.jsPlumb.deleteConnection(node.node);
+        const conn = node.node;
+        lineList.splice(
+          lineList.findIndex(
+            line =>
+              line.sourceId == conn.sourceId && line.targetId == conn.targetId
+          ),
+          1
+        );
+      } else if (node.type == "node") {
+        let nodeId = node.node.id;
+        let conns = this.getConnectionsByNodeId(nodeId);
+        conns.forEach((conn, index) => {
+          lineList.splice(
+            lineList.findIndex(
+              line =>
+                line.sourceId == conn.sourceId || line.targetId == conn.targetId
+            ),
+            1
+          );
+        });
+
+        this.jsPlumb.deleteEveryEndpoint();
+        let inx = nodeList.findIndex(node => node.id == nodeId);
+        nodeList.splice(inx, 1);
+        this.$nextTick(() => {
+          lineList.forEach((line, index) => {
+            let conn = this.jsPlumb.connect(
+              {
+                source: line.sourceId,
+                target: line.targetId
+              },
+              connectConfig
+            );
+          });
+        });
+      }
+
+      this.selectNode = {};
+      this.$refs.extendmenu.style.visibility = "hidden";
+    },
+    getConnectionsByNodeId(nodeId) {
+      let conns1 = this.jsPlumb.getConnections({
+        source: nodeId
+      });
+      let conns2 = this.jsPlumb.getConnections({
+        target: nodeId
+      });
+      return conns1.concat(conns2);
+    },
+    clearAll() {
+      this.data.nodeList.forEach(node => {
+        this.jsPlumb.remove(node.id);
+      });
+      this.data.nodeList = [];
+    },
+    result() {
+      let bpmn = build(this.data);
+      let result = {
+        bpmnJson: this.data,
+        bpmnXml: bpmn
+      };
+
+      return result;
+    },
+    $initDragContainer() {
+      let flag = false;
+      let area = document.getElementById("moveSelected");
+      let container = document.getElementById("container");
+      let oldLeft = 0;
+      let oldTop = 0;
+
+      container.addEventListener("mousedown", e => {
+        flag = true;
+        area.style.top = e.offsetY + "px";
+        area.style.left = e.offsetX + "px";
+        oldLeft = e.offsetX;
+        oldTop = e.offsetY;
+      });
+
+      container.addEventListener("mousemove", e => {
+        if (e.target.id == "container") {
+          this.mousePos = {
+            x: e.offsetX,
+            y: e.offsetY
+          };
+        }
+
+        if (flag === true && e.target.id == "container") {
+          if (e.offsetX < oldLeft) {
+            area.style.left = e.offsetX + "px";
+            area.style.width = Number(oldLeft - e.offsetX) + "px";
+          } else {
+            area.style.width = Number(e.offsetX - oldLeft) + "px";
+          }
+
+          if (e.offsetY < oldTop) {
+            area.style.top = e.offsetY + "px";
+            area.style.height = Number(oldTop - e.offsetY) + "px";
+          } else {
+            area.style.height = Number(e.offsetY - oldTop) + "px";
+          }
+        }
+      });
+
+      container.addEventListener("mouseup", e => {
+        flag = false;
+        area.style.top = 0;
+        area.style.left = 0;
+        area.style.width = 0;
+        area.style.height = 0;
+      });
+
+      container.addEventListener("mouseleave", e => {
+        flag = false;
+        area.style.top = 0;
+        area.style.left = 0;
+        area.style.width = 0;
+        area.style.height = 0;
+      });
+    },
+    alignForLine(e) {
+      let elId = e.el.id;
+      let nodeList = this.data.nodeList;
+      let left = e.pos[0];
+      let top = e.pos[1];
+      let curNode = nodeList.find(n => n.id == elId);
+      nodeList.some((node, index) => {
+        if (elId != node.id) {
+          let nodeWidthCenter = node.left + node.width / 2;
+          let curWidthCenter = left + curNode.width / 2;
+
+          if (Math.abs(nodeWidthCenter - curWidthCenter) == 0) {
+            this.$set(this.linePos, "x", node.left + node.width / 2);
+            this.isShowYLine = true;
+            return true;
+          } else {
+            this.isShowYLine = false;
+          }
+
+          let nodeHeightCenter = node.top + node.height / 2;
+          let curHeightCenter = top + curNode.height / 2;
+
+          if (Math.abs(nodeHeightCenter - curHeightCenter) == 0) {
+            this.$set(this.linePos, "y", node.top + node.height / 2);
+            this.isShowXLine = true;
+            return true;
+          } else {
+            this.isShowXLine = false;
+          }
+        }
+      });
+    }
+  },
+  mounted() {
+    this.$init();
+    this.$initDragContainer();
+  },
+  created() {
+    if (Object.keys(this.value).length > 0 && this.value.config.id) {
+      this.loadFlow();
+    }
+    this.loadSubType(false);
+    this.loadForm(false);
+  }
+};
+</script>
+
+<style lang='scss' >
+.workflow-design {
+  height: 100%;
+  .tools-area {
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    .opts {
+      margin: 20px 10px;
+      text-align: center;
+    }
+    .tool-title {
+      border-left: 5px solid $--color-primary;
+      height: 30px;
+      line-height: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      color: $--color-primary;
+      padding-left: 10px;
+    }
+  }
+  .properties-panel {
+    border-left: 1px solid #ccc;
+    padding: 10px;
+  }
+  .tools {
+    .item {
+      display: inline-block;
+      list-style: none;
+      width: calc(50% - 20px);
+      text-align: left;
+      padding: 0 10px;
+      line-height: 40px;
+      margin: 10px;
+      height: 40px;
+      box-sizing: border-box;
+      background-color: #f4f5fb;
+      border: 1px solid #f4f5fb;
+      cursor: move;
+      i {
+        padding: 0 2px;
+      }
+      &:hover {
+        border: 1px dashed $--color-primary;
+      }
+    }
+  }
+
+  .flow-header {
+    height: 50px !important;
+    line-height: 50px;
+  }
+
+  .flow-main {
+    height: 100%;
+    width: 100%;
+    border: 2px dashed #ccc;
+    position: relative;
+    overflow: hidden;
+    background-image: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.15) 10%,
+        transparent 0
+      ),
+      linear-gradient(rgba(0, 0, 0, 0.15) 10%, transparent 0);
+    background-size: 10px 10px;
+    .cur-node {
+      border: 2px dashed $--color-primary;
+    }
+    .no-cur-node {
+      border: 2px dashed transparent;
+    }
+    .flow-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.5s ease 0s, transform-origin 0.5s ease 0s;
+    }
+    .moveSelected {
+      position: absolute;
+      background-color: blue;
+      opacity: 0.3;
+      border: 1px dashed #d9d9d9;
+      top: 0;
+      left: 0;
+    }
+  }
+
+  .flow-footer {
+    line-height: 60px;
+    text-align: right;
+  }
+}
+.ghost-in {
+  list-style: none;
+}
+
+.rightMenu {
+  position: fixed;
+  visibility: hidden;
+  top: 0;
+  width: 140px;
+  padding: 2px;
+  background: white;
+  color: #201f35;
+  box-shadow: 0px 5px 32px 0px rgba(81, 79, 79, 0.25);
+  font-size: 9pt;
+  border-collapse: collapse;
+  border-collapse: separate;
+  overflow: hidden;
+  border-radius: 4px;
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    text-align: left;
+    margin: 0;
+    list-style: none;
+    margin: 0;
+    cursor: pointer;
+    padding-right: 12px;
+    padding-left: 10px;
+    list-style: none;
+    line-height: 30px;
+    font-size: 14px;
+    color: #444;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-break: keep-all;
+    overflow: hidden;
+    &:hover {
+      background-color: #dfdfdf;
+    }
+  }
+}
+
+.auxiliary-line-x {
+  position: absolute;
+  border: 1px solid rgb(64, 158, 255, 0.5);
+  width: 100%;
+  z-index: 9999;
+}
+
+.auxiliary-line-y {
+  position: absolute;
+  border: 1px solid rgb(64, 158, 255, 0.5);
+  height: 100%;
+  z-index: 9999;
+}
+
+.mouse-position {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-size: 18px;
+}
+
+.aLabel {
+  font-size: 16px;
+  font-weight: bold;
+  color: blue;
+  transform: translate(-50%, -108%) !important;
+}
+</style>
